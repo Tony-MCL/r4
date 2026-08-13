@@ -24,7 +24,6 @@ import kotlin.math.min
 class OverlayService : Service() {
     private lateinit var windowManager: WindowManager
     private lateinit var repository: MessageRepository
-
     private var overlayView: View? = null
 
     private val positionPreferences by lazy {
@@ -51,7 +50,7 @@ class OverlayService : Service() {
         removeOverlayView()
 
         val bubble = TextView(this).apply {
-            text = "R4"
+            text = getString(R.string.app_name)
             gravity = Gravity.CENTER
             textSize = 16f
             setTextColor(0xFFFFFFFF.toInt())
@@ -115,7 +114,7 @@ class OverlayService : Service() {
         }
 
         val title = TextView(this).apply {
-            text = "R4"
+            text = getString(R.string.app_name)
             textSize = 13f
             setTextColor(0xFFBDBDBD.toInt())
             gravity = Gravity.CENTER_VERTICAL
@@ -157,7 +156,7 @@ class OverlayService : Service() {
         if (messages.isEmpty()) {
             listContent.addView(
                 createListRow(
-                    title = "Ingen lagrede meldinger",
+                    title = getString(R.string.overlay_no_saved_messages),
                     enabled = false,
                     onClick = {},
                 )
@@ -170,7 +169,7 @@ class OverlayService : Service() {
                         enabled = true,
                         onClick = {
                             copyToClipboard(message.text)
-                            Toast.makeText(this, "Copied", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, getString(R.string.copied), Toast.LENGTH_SHORT).show()
                             showCollapsedOverlay()
                         },
                     )
@@ -201,17 +200,8 @@ class OverlayService : Service() {
             ),
         )
 
-        val desiredX = if (openToRight) {
-            bubbleX
-        } else {
-            bubbleX + bubbleApproxSize - panelWidth
-        }
-
-        val desiredY = if (openDown) {
-            bubbleY
-        } else {
-            bubbleY + bubbleApproxSize - maxPanelHeight
-        }
+        val desiredX = if (openToRight) bubbleX else bubbleX + bubbleApproxSize - panelWidth
+        val desiredY = if (openDown) bubbleY else bubbleY + bubbleApproxSize - maxPanelHeight
 
         val params = createWindowParams(
             width = panelWidth,
@@ -239,16 +229,12 @@ class OverlayService : Service() {
         return TextView(this).apply {
             text = title
             textSize = 15f
-            setTextColor(
-                if (enabled) 0xFFFFFFFF.toInt() else 0xFF8A8A8A.toInt()
-            )
+            setTextColor(if (enabled) 0xFFFFFFFF.toInt() else 0xFF8A8A8A.toInt())
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(12), dp(8), dp(12), dp(8))
             isClickable = enabled
             isFocusable = enabled
-            if (enabled) {
-                setOnClickListener { onClick() }
-            }
+            if (enabled) setOnClickListener { onClick() }
         }
     }
 
@@ -273,37 +259,23 @@ class OverlayService : Service() {
                     moved = false
                     true
                 }
-
                 MotionEvent.ACTION_MOVE -> {
                     val dx = (event.rawX - initialTouchX).toInt()
                     val dy = (event.rawY - initialTouchY).toInt()
                     val boundsNow = currentScreenBounds()
-
-                    if (abs(dx) > dp(4) || abs(dy) > dp(4)) {
-                        moved = true
-                    }
-
+                    if (abs(dx) > dp(4) || abs(dy) > dp(4)) moved = true
                     val viewWidth = if (params.width > 0) params.width else dp(64)
                     val viewHeight = if (params.height > 0) params.height else dp(64)
-
                     params.x = (initialX + dx).coerceIn(0, max(0, boundsNow.width() - viewWidth))
                     params.y = (initialY + dy).coerceIn(0, max(0, boundsNow.height() - viewHeight))
                     overlayView?.let { windowManager.updateViewLayout(it, params) }
                     true
                 }
-
                 MotionEvent.ACTION_UP -> {
-                    positionPreferences.edit()
-                        .putInt(KEY_X, params.x)
-                        .putInt(KEY_Y, params.y)
-                        .apply()
-
-                    if (!moved) {
-                        onClick()
-                    }
+                    positionPreferences.edit().putInt(KEY_X, params.x).putInt(KEY_Y, params.y).apply()
+                    if (!moved) onClick()
                     true
                 }
-
                 else -> false
             }
         }
@@ -325,13 +297,11 @@ class OverlayService : Service() {
 
     private fun copyToClipboard(text: String) {
         val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(ClipData.newPlainText("R4 message", text))
+        clipboard.setPrimaryClip(ClipData.newPlainText(getString(R.string.clipboard_label), text))
     }
 
     private fun removeOverlayView() {
-        overlayView?.let { view ->
-            runCatching { windowManager.removeView(view) }
-        }
+        overlayView?.let { view -> runCatching { windowManager.removeView(view) } }
         overlayView = null
     }
 
@@ -343,7 +313,6 @@ class OverlayService : Service() {
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
-
     private fun dp(value: Float): Int = (value * resources.displayMetrics.density).toInt()
 
     companion object {

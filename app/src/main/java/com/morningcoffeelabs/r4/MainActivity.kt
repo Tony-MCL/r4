@@ -6,6 +6,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,8 +18,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -37,13 +42,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import java.util.UUID
 
 private data class TargetApp(val label: String, val packageName: String)
+
+private val R4Background = Color(0xFF0E1113)
+private val R4Surface = Color(0xFF14181B)
+private val R4Border = Color(0xFF30363A)
+private val R4Green = Color(0xFF8ED12E)
+private val R4Muted = Color(0xFFADB3B8)
 
 class MainActivity : ComponentActivity() {
     private var overlayPermissionGranted by mutableStateOf(false)
@@ -212,10 +228,21 @@ private fun R4App(
             },
         )
     } else {
-        MessageList(
-            messages, overlayPermissionGranted, overlayRunning, targetAppName, favoriteApps,
-            onRequestOverlayPermission, onOpenSettings, onSelectTargetApp, onClearTargetApp,
-            onStartOverlay, onStopOverlay, { isCreating = true }, { editingMessage = it }, { pendingDelete = it },
+        HomeScreen(
+            messages = messages,
+            overlayPermissionGranted = overlayPermissionGranted,
+            overlayRunning = overlayRunning,
+            targetAppName = targetAppName,
+            favoriteApps = favoriteApps,
+            onRequestOverlayPermission = onRequestOverlayPermission,
+            onOpenSettings = onOpenSettings,
+            onSelectTargetApp = onSelectTargetApp,
+            onClearTargetApp = onClearTargetApp,
+            onStartOverlay = onStartOverlay,
+            onStopOverlay = onStopOverlay,
+            onCreate = { isCreating = true },
+            onEdit = { editingMessage = it },
+            onDelete = { pendingDelete = it },
         )
     }
 
@@ -267,73 +294,298 @@ private fun R4App(
 }
 
 @Composable
-private fun MessageList(
-    messages: List<Message>, overlayPermissionGranted: Boolean, overlayRunning: Boolean,
-    targetAppName: String?, favoriteApps: List<TargetApp>, onRequestOverlayPermission: () -> Unit,
-    onOpenSettings: () -> Unit, onSelectTargetApp: (TargetApp) -> Unit, onClearTargetApp: () -> Unit,
-    onStartOverlay: () -> Unit, onStopOverlay: () -> Unit, onCreate: () -> Unit,
-    onEdit: (Message) -> Unit, onDelete: (Message) -> Unit,
+private fun HomeScreen(
+    messages: List<Message>,
+    overlayPermissionGranted: Boolean,
+    overlayRunning: Boolean,
+    targetAppName: String?,
+    favoriteApps: List<TargetApp>,
+    onRequestOverlayPermission: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onSelectTargetApp: (TargetApp) -> Unit,
+    onClearTargetApp: () -> Unit,
+    onStartOverlay: () -> Unit,
+    onStopOverlay: () -> Unit,
+    onCreate: () -> Unit,
+    onEdit: (Message) -> Unit,
+    onDelete: (Message) -> Unit,
 ) {
-    Scaffold(topBar = {
-        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
-            Image(
-                painter = painterResource(R.drawable.r4_logo),
-                contentDescription = stringResource(R.string.app_name),
-                modifier = Modifier.height(62.dp),
-            )
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.saved_messages_count, messages.size), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                TextButton(onClick = onOpenSettings) { Text("⚙", style = MaterialTheme.typography.titleLarge) }
+    var showMessages by remember { mutableStateOf(false) }
+
+    Scaffold(containerColor = R4Background) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(R4Background)
+                .padding(innerPadding)
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            item {
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Spacer(Modifier.weight(1f))
+                    Image(
+                        painter = painterResource(R.drawable.r4_logo),
+                        contentDescription = stringResource(R.string.app_name),
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .padding(top = 18.dp)
+                            .height(116.dp)
+                            .weight(2.4f),
+                    )
+                    TextButton(
+                        onClick = onOpenSettings,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("⚙", color = R4Green, fontSize = 28.sp)
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.welcome_title),
+                    color = Color.White,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(R.string.welcome_subtitle),
+                    color = R4Muted,
+                    fontSize = 16.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(14.dp))
             }
-        }
-    }) { innerPadding ->
-        Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 16.dp)) {
-            Button(onClick = onCreate, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.new_message)) }
-            Spacer(modifier = Modifier.height(12.dp))
-            OverlaySetupCard(overlayPermissionGranted, overlayRunning, targetAppName, favoriteApps, onRequestOverlayPermission, onSelectTargetApp, onClearTargetApp, onStartOverlay, onStopOverlay)
-            Spacer(modifier = Modifier.height(16.dp))
-            if (messages.isEmpty()) Text(stringResource(R.string.no_messages))
-            else LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
-                items(messages, key = { it.id }) { message -> MessageCard(message, { onEdit(message) }, { onDelete(message) }) }
+
+            item {
+                HomeActionCard(
+                    iconText = "+",
+                    title = stringResource(R.string.new_message),
+                    subtitle = stringResource(R.string.home_new_message_subtitle),
+                    onClick = onCreate,
+                )
+            }
+
+            item {
+                HomeActionCard(
+                    iconText = "☷",
+                    title = stringResource(R.string.my_messages),
+                    subtitle = stringResource(R.string.home_my_messages_subtitle, messages.size),
+                    onClick = { showMessages = !showMessages },
+                )
+            }
+
+            if (showMessages) {
+                if (messages.isEmpty()) {
+                    item {
+                        Text(
+                            text = stringResource(R.string.no_messages),
+                            color = R4Muted,
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                        )
+                    }
+                } else {
+                    items(messages, key = { it.id }) { message ->
+                        DarkMessageCard(message, { onEdit(message) }, { onDelete(message) })
+                    }
+                }
+            }
+
+            item {
+                DarkOverlayCard(
+                    permissionGranted = overlayPermissionGranted,
+                    overlayRunning = overlayRunning,
+                    targetAppName = targetAppName,
+                    favoriteApps = favoriteApps,
+                    onRequestPermission = onRequestOverlayPermission,
+                    onSelectTargetApp = onSelectTargetApp,
+                    onClearTargetApp = onClearTargetApp,
+                    onStartOverlay = onStartOverlay,
+                    onStopOverlay = onStopOverlay,
+                )
+            }
+
+            item {
+                InfoCard()
+                Spacer(Modifier.height(24.dp))
             }
         }
     }
 }
 
 @Composable
-private fun OverlaySetupCard(
-    permissionGranted: Boolean, overlayRunning: Boolean, targetAppName: String?, favoriteApps: List<TargetApp>,
-    onRequestPermission: () -> Unit, onSelectTargetApp: (TargetApp) -> Unit, onClearTargetApp: () -> Unit,
-    onStartOverlay: () -> Unit, onStopOverlay: () -> Unit,
+private fun HomeActionCard(iconText: String, title: String, subtitle: String, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(18.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, R4Border, shape)
+            .background(R4Surface, shape)
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .border(1.dp, R4Green.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
+                .background(R4Green.copy(alpha = 0.05f), RoundedCornerShape(14.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(iconText, color = R4Green, fontSize = 30.sp, fontWeight = FontWeight.Light)
+        }
+        Spacer(Modifier.size(16.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(4.dp))
+            Text(subtitle, color = R4Muted, fontSize = 15.sp)
+        }
+        Text("›", color = R4Green, fontSize = 34.sp)
+    }
+}
+
+@Composable
+private fun DarkOverlayCard(
+    permissionGranted: Boolean,
+    overlayRunning: Boolean,
+    targetAppName: String?,
+    favoriteApps: List<TargetApp>,
+    onRequestPermission: () -> Unit,
+    onSelectTargetApp: (TargetApp) -> Unit,
+    onClearTargetApp: () -> Unit,
+    onStartOverlay: () -> Unit,
+    onStopOverlay: () -> Unit,
 ) {
     var dropdownExpanded by remember { mutableStateOf(false) }
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(stringResource(R.string.target_app))
-                Box {
-                    TextButton(onClick = { dropdownExpanded = true }, enabled = favoriteApps.isNotEmpty()) {
-                        val label = when {
-                            favoriteApps.isEmpty() -> stringResource(R.string.none_selected)
-                            targetAppName == null -> stringResource(R.string.choose_app)
-                            else -> targetAppName
-                        }
-                        Text(if (favoriteApps.isEmpty()) label else "$label ▼")
+    val shape = RoundedCornerShape(18.dp)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, R4Border, shape)
+            .background(R4Surface, shape)
+            .padding(16.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .border(1.dp, R4Green.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
+                    .background(R4Green.copy(alpha = 0.05f), RoundedCornerShape(14.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("▣", color = R4Green, fontSize = 28.sp)
+            }
+            Spacer(Modifier.size(16.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = if (overlayRunning) stringResource(R.string.stop_overlay) else stringResource(R.string.start_overlay),
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(stringResource(R.string.home_overlay_subtitle), color = R4Muted, fontSize = 15.sp)
+            }
+        }
+
+        Spacer(Modifier.height(14.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.target_app), color = R4Muted)
+            Box {
+                TextButton(onClick = { dropdownExpanded = true }, enabled = favoriteApps.isNotEmpty()) {
+                    val label = when {
+                        favoriteApps.isEmpty() -> stringResource(R.string.none_selected)
+                        targetAppName == null -> stringResource(R.string.choose_app)
+                        else -> targetAppName
                     }
-                    DropdownMenu(expanded = dropdownExpanded, onDismissRequest = { dropdownExpanded = false }) {
-                        favoriteApps.forEach { app ->
-                            DropdownMenuItem(text = { Text(app.label) }, onClick = { onSelectTargetApp(app); dropdownExpanded = false })
-                        }
+                    Text(if (favoriteApps.isEmpty()) label else "$label ▼", color = if (favoriteApps.isEmpty()) R4Muted else R4Green)
+                }
+                DropdownMenu(expanded = dropdownExpanded, onDismissRequest = { dropdownExpanded = false }) {
+                    favoriteApps.forEach { app ->
+                        DropdownMenuItem(
+                            text = { Text(app.label) },
+                            onClick = {
+                                onSelectTargetApp(app)
+                                dropdownExpanded = false
+                            },
+                        )
                     }
                 }
             }
-            if (targetAppName != null) TextButton(onClick = onClearTargetApp) { Text(stringResource(R.string.remove_target_app)) }
-            Spacer(modifier = Modifier.height(6.dp))
-            when {
-                !permissionGranted -> OutlinedButton(onClick = onRequestPermission) { Text(stringResource(R.string.grant_overlay_permission)) }
-                overlayRunning -> OutlinedButton(onClick = onStopOverlay) { Text(stringResource(R.string.stop_overlay)) }
-                else -> Button(onClick = onStartOverlay) { Text(stringResource(R.string.start_overlay)) }
+        }
+
+        if (targetAppName != null) {
+            TextButton(onClick = onClearTargetApp) {
+                Text(stringResource(R.string.remove_target_app), color = R4Muted)
             }
+        }
+
+        when {
+            !permissionGranted -> Button(onClick = onRequestPermission, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.grant_overlay_permission))
+            }
+            overlayRunning -> OutlinedButton(onClick = onStopOverlay, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.stop_overlay), color = Color.White)
+            }
+            else -> Button(onClick = onStartOverlay, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.start_overlay))
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoCard() {
+    val shape = RoundedCornerShape(18.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, R4Border, shape)
+            .background(R4Surface, shape)
+            .padding(18.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Text("💡", fontSize = 26.sp)
+        Spacer(Modifier.size(14.dp))
+        Column {
+            Text(
+                text = stringResource(R.string.how_r4_works_title),
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = stringResource(R.string.how_r4_works_text),
+                color = R4Muted,
+                fontSize = 15.sp,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DarkMessageCard(message: Message, onEdit: () -> Unit, onDelete: () -> Unit) {
+    val shape = RoundedCornerShape(14.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, R4Border, shape)
+            .background(R4Surface, shape)
+            .padding(14.dp),
+    ) {
+        Text(message.title, color = Color.White, fontWeight = FontWeight.Bold)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = onEdit) { Text(stringResource(R.string.edit), color = R4Green) }
+            TextButton(onClick = onDelete) { Text(stringResource(R.string.delete), color = R4Muted) }
         }
     }
 }
@@ -384,20 +636,6 @@ private fun SettingsScreen(onBack: () -> Unit, onManageApps: () -> Unit) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(onClick = {}, enabled = false) { Text(stringResource(R.string.purchase)) }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MessageCard(message: Message, onEdit: () -> Unit, onDelete: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(message.title, style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onEdit) { Text(stringResource(R.string.edit)) }
-                TextButton(onClick = onDelete) { Text(stringResource(R.string.delete)) }
             }
         }
     }

@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -30,6 +31,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -44,8 +46,9 @@ class MainActivity : ComponentActivity() {
     private var overlayPermissionGranted by mutableStateOf(false)
     private var overlayRunning by mutableStateOf(false)
     private var targetAppName by mutableStateOf<String?>(null)
-    private var showTargetAppPicker by mutableStateOf(false)
-    private var targetApps by mutableStateOf<List<TargetApp>>(emptyList())
+    private var favoriteApps by mutableStateOf<List<TargetApp>>(emptyList())
+    private var allTargetApps by mutableStateOf<List<TargetApp>>(emptyList())
+    private var showManageApps by mutableStateOf(false)
 
     private val targetPreferences by lazy {
         getSharedPreferences("r4_target_app", MODE_PRIVATE)
@@ -57,7 +60,7 @@ class MainActivity : ComponentActivity() {
         val repository = MessageRepository(this)
         overlayPermissionGranted = OverlayPermission.isGranted(this)
         overlayRunning = OverlayService.isRunning
-        refreshTargetApp()
+        refreshTargetApps()
 
         setContent {
             MaterialTheme {
@@ -66,24 +69,34 @@ class MainActivity : ComponentActivity() {
                     overlayPermissionGranted = overlayPermissionGranted,
                     overlayRunning = overlayRunning,
                     targetAppName = targetAppName,
-                    targetApps = targetApps,
-                    showTargetAppPicker = showTargetAppPicker,
+                    favoriteApps = favoriteApps,
+                    allTargetApps = allTargetApps,
+                    showManageApps = showManageApps,
                     onRequestOverlayPermission = { OverlayPermission.openSettings(this) },
-                    onChooseTargetApp = {
-                        targetApps = loadLaunchableApps()
-                        showTargetAppPicker = true
+                    onManageApps = {
+                        allTargetApps = loadLaunchableApps()
+                        showManageApps = true
                     },
-                    onTargetAppSelected = { app ->
+                    onFavoriteToggled = { app, enabled ->
+                        setFavorite(app, enabled)
+                        refreshTargetApps()
+                    },
+                    onDismissManageApps = {
+                        showManageApps = false
+                        refreshTargetApps()
+                    },
+                    onSelectTargetApp = { app ->
                         targetPreferences.edit()
                             .putString("package_name", app.packageName)
                             .putString("label", app.label)
                             .apply()
                         targetAppName = app.label
-                        showTargetAppPicker = false
                     },
-                    onDismissTargetAppPicker = { showTargetAppPicker = false },
                     onClearTargetApp = {
-                        targetPreferences.edit().clear().apply()
+                        targetPreferences.edit()
+                            .remove("package_name")
+                            .remove("label")
+                            .apply()
                         targetAppName = null
                     },
                     onStartOverlay = {
@@ -106,14 +119,13 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         overlayPermissionGranted = OverlayPermission.isGranted(this)
         overlayRunning = OverlayService.isRunning
-        refreshTargetApp()
+        refreshTargetApps()
     }
 
     private fun loadLaunchableApps(): List<TargetApp> {
         val launcherIntent = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_LAUNCHER)
         }
-
         return packageManager.queryIntentActivities(launcherIntent, 0)
             .filter { it.activityInfo.packageName != packageName }
             .map { resolveInfo: ResolveInfo ->
@@ -126,15 +138,37 @@ class MainActivity : ComponentActivity() {
             .sortedBy { it.label.lowercase() }
     }
 
-    private fun launchSelectedTargetApp(): Boolean {
-        val packageName = targetPreferences.getString("package_name", null) ?: return false
-        val launchIntent = packageManager.getLaunchIntentForPackage(packageName) ?: return false
-        startActivity(launchIntent)
-        return true
+    private fun setFavorite(app: TargetApp, enabled: Boolean) {
+        val favorites = targetPreferences.getStringSet("favorite_packages", emptySet())?.toMutableSet() ?: mutableSetOf()
+        if (enabled) favorites.add(app.packageName) else favorites.remove(app.packageName)
+        targetPreferences.edit().putStringSet("favorite_packages", favorites).apply()
+
+        val labels = targetPreferences.getStringSet("favorite_labels", emptySet())?.toMutableSet() ?: mutableSetOf()
+        labels.removeAll { it.substringAfter('|', "") == app.packageName }
+        if (enabled) labels.add("${app.label}|${app.packageName}")
+        targetPreferences.edit().putStringSet("favorite_labels", labels).apply()
+
+        val selectedPackage = targetPreferences.getString("package_name", null)
+        if (!enabled && selectedPackage == app.packageName) {
+            targetPreferences.edit().remove("package_name").remove("label").apply()
+            targetAppName = null
+        }
     }
 
-    private fun refreshTargetApp() {
+    private fun refreshTargetApps() {
+        val labels = targetPreferences.getStringSet("favorite_labels", emptySet()).orEmpty()
+        favoriteApps = labels.mapNotNull { entry ->
+            val split = entry.split('|', limit = 2)
+            if (split.size == 2) TargetApp(split[0], split[1]) else null
+        }.sortedBy { it.label.lowercase() }
         targetAppName = targetPreferences.getString("label", null)
+    }
+
+    private fun launchSelectedTargetApp(): Boolean {
+        val selectedPackage = targetPreferences.getString("package_name", null) ?: return false
+        val launchIntent = packageManager.getLaunchIntentForPackage(selectedPackage) ?: return false
+        startActivity(launchIntent)
+        return true
     }
 }
 
@@ -144,12 +178,14 @@ private fun R4App(
     overlayPermissionGranted: Boolean,
     overlayRunning: Boolean,
     targetAppName: String?,
-    targetApps: List<TargetApp>,
-    showTargetAppPicker: Boolean,
+    favoriteApps: List<TargetApp>,
+    allTargetApps: List<TargetApp>,
+    showManageApps: Boolean,
     onRequestOverlayPermission: () -> Unit,
-    onChooseTargetApp: () -> Unit,
-    onTargetAppSelected: (TargetApp) -> Unit,
-    onDismissTargetAppPicker: () -> Unit,
+    onManageApps: () -> Unit,
+    onFavoriteToggled: (TargetApp, Boolean) -> Unit,
+    onDismissManageApps: () -> Unit,
+    onSelectTargetApp: (TargetApp) -> Unit,
     onClearTargetApp: () -> Unit,
     onStartOverlay: () -> Unit,
     onStopOverlay: () -> Unit,
@@ -189,8 +225,10 @@ private fun R4App(
             overlayPermissionGranted = overlayPermissionGranted,
             overlayRunning = overlayRunning,
             targetAppName = targetAppName,
+            favoriteApps = favoriteApps,
             onRequestOverlayPermission = onRequestOverlayPermission,
-            onChooseTargetApp = onChooseTargetApp,
+            onManageApps = onManageApps,
+            onSelectTargetApp = onSelectTargetApp,
             onClearTargetApp = onClearTargetApp,
             onStartOverlay = onStartOverlay,
             onStopOverlay = onStopOverlay,
@@ -200,25 +238,30 @@ private fun R4App(
         )
     }
 
-    if (showTargetAppPicker) {
+    if (showManageApps) {
+        val favoritePackages = favoriteApps.map { it.packageName }.toSet()
         AlertDialog(
-            onDismissRequest = onDismissTargetAppPicker,
-            title = { Text("Velg app") },
+            onDismissRequest = onDismissManageApps,
+            title = { Text("Administrer apper") },
             text = {
                 LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                    items(targetApps, key = { it.packageName }) { app ->
-                        TextButton(
-                            onClick = { onTargetAppSelected(app) },
+                    items(allTargetApps, key = { it.packageName }) { app ->
+                        val checked = app.packageName in favoritePackages
+                        Row(
                             modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(app.label, modifier = Modifier.fillMaxWidth())
+                            Checkbox(
+                                checked = checked,
+                                onCheckedChange = { enabled -> onFavoriteToggled(app, enabled) },
+                            )
+                            Text(app.label)
                         }
                     }
                 }
             },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = onDismissTargetAppPicker) { Text("Avbryt") }
+            confirmButton = {
+                TextButton(onClick = onDismissManageApps) { Text("Ferdig") }
             },
         )
     }
@@ -248,8 +291,10 @@ private fun MessageList(
     overlayPermissionGranted: Boolean,
     overlayRunning: Boolean,
     targetAppName: String?,
+    favoriteApps: List<TargetApp>,
     onRequestOverlayPermission: () -> Unit,
-    onChooseTargetApp: () -> Unit,
+    onManageApps: () -> Unit,
+    onSelectTargetApp: (TargetApp) -> Unit,
     onClearTargetApp: () -> Unit,
     onStartOverlay: () -> Unit,
     onStopOverlay: () -> Unit,
@@ -277,8 +322,10 @@ private fun MessageList(
                 permissionGranted = overlayPermissionGranted,
                 overlayRunning = overlayRunning,
                 targetAppName = targetAppName,
+                favoriteApps = favoriteApps,
                 onRequestPermission = onRequestOverlayPermission,
-                onChooseTargetApp = onChooseTargetApp,
+                onManageApps = onManageApps,
+                onSelectTargetApp = onSelectTargetApp,
                 onClearTargetApp = onClearTargetApp,
                 onStartOverlay = onStartOverlay,
                 onStopOverlay = onStopOverlay,
@@ -309,8 +356,10 @@ private fun OverlaySetupCard(
     permissionGranted: Boolean,
     overlayRunning: Boolean,
     targetAppName: String?,
+    favoriteApps: List<TargetApp>,
     onRequestPermission: () -> Unit,
-    onChooseTargetApp: () -> Unit,
+    onManageApps: () -> Unit,
+    onSelectTargetApp: (TargetApp) -> Unit,
     onClearTargetApp: () -> Unit,
     onStartOverlay: () -> Unit,
     onStopOverlay: () -> Unit,
@@ -329,14 +378,28 @@ private fun OverlaySetupCard(
             )
             Spacer(modifier = Modifier.height(10.dp))
             Text("Målapp: ${targetAppName ?: "Ingen valgt"}")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = onChooseTargetApp) {
-                    Text(if (targetAppName == null) "Velg app" else "Bytt app")
-                }
-                if (targetAppName != null) {
-                    TextButton(onClick = onClearTargetApp) { Text("Fjern") }
+            Spacer(modifier = Modifier.height(6.dp))
+
+            if (favoriteApps.isEmpty()) {
+                Text("Ingen favorittapper valgt.", style = MaterialTheme.typography.bodySmall)
+            } else {
+                favoriteApps.forEach { app ->
+                    TextButton(
+                        onClick = { onSelectTargetApp(app) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(app.label, modifier = Modifier.fillMaxWidth())
+                    }
                 }
             }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onManageApps) { Text("Administrer apper") }
+                if (targetAppName != null) {
+                    TextButton(onClick = onClearTargetApp) { Text("Fjern målapp") }
+                }
+            }
+
             when {
                 !permissionGranted -> OutlinedButton(onClick = onRequestPermission) { Text("Gi overlay-tillatelse") }
                 overlayRunning -> OutlinedButton(onClick = onStopOverlay) { Text("Stopp overlay") }

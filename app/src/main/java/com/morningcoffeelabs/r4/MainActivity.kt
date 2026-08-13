@@ -5,6 +5,7 @@ import android.content.pm.ResolveInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -273,8 +275,12 @@ private fun MessageList(
     onEdit: (Message) -> Unit, onDelete: (Message) -> Unit,
 ) {
     Scaffold(topBar = {
-        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
-            Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium)
+        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+            Image(
+                painter = painterResource(R.drawable.r4_logo),
+                contentDescription = stringResource(R.string.app_name),
+                modifier = Modifier.height(62.dp),
+            )
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.saved_messages_count, messages.size), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                 TextButton(onClick = onOpenSettings) { Text("⚙", style = MaterialTheme.typography.titleLarge) }

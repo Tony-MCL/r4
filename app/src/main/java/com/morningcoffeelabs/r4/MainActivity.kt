@@ -34,21 +34,39 @@ import androidx.compose.ui.unit.dp
 import java.util.UUID
 
 class MainActivity : ComponentActivity() {
+    private var overlayPermissionGranted by mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val repository = MessageRepository(this)
+        overlayPermissionGranted = OverlayPermission.isGranted(this)
 
         setContent {
             MaterialTheme {
-                R4App(repository = repository)
+                R4App(
+                    repository = repository,
+                    overlayPermissionGranted = overlayPermissionGranted,
+                    onRequestOverlayPermission = {
+                        OverlayPermission.openSettings(this)
+                    },
+                )
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        overlayPermissionGranted = OverlayPermission.isGranted(this)
     }
 }
 
 @Composable
-private fun R4App(repository: MessageRepository) {
+private fun R4App(
+    repository: MessageRepository,
+    overlayPermissionGranted: Boolean,
+    onRequestOverlayPermission: () -> Unit,
+) {
     val messages = remember {
         mutableStateListOf<Message>().apply {
             addAll(repository.loadMessages())
@@ -103,6 +121,8 @@ private fun R4App(repository: MessageRepository) {
     } else {
         MessageList(
             messages = messages,
+            overlayPermissionGranted = overlayPermissionGranted,
+            onRequestOverlayPermission = onRequestOverlayPermission,
             onCreate = { isCreating = true },
             onEdit = { editingMessage = it },
             onDelete = { pendingDelete = it },
@@ -137,6 +157,8 @@ private fun R4App(repository: MessageRepository) {
 @Composable
 private fun MessageList(
     messages: List<Message>,
+    overlayPermissionGranted: Boolean,
+    onRequestOverlayPermission: () -> Unit,
     onCreate: () -> Unit,
     onEdit: (Message) -> Unit,
     onDelete: (Message) -> Unit,
@@ -146,7 +168,7 @@ private fun MessageList(
             Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
                 Text("R4", style = MaterialTheme.typography.headlineMedium)
                 Text(
-                    "Lagrede meldinger",
+                    "Lagrede meldinger: ${messages.size}",
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
@@ -165,6 +187,13 @@ private fun MessageList(
                 Text("Ny melding")
             }
 
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OverlaySetupCard(
+                permissionGranted = overlayPermissionGranted,
+                onRequestPermission = onRequestOverlayPermission,
+            )
+
             Spacer(modifier = Modifier.height(16.dp))
 
             if (messages.isEmpty()) {
@@ -178,28 +207,72 @@ private fun MessageList(
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     items(messages, key = { it.id }) { message ->
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(
-                                    text = message.title,
-                                    style = MaterialTheme.typography.titleMedium,
-                                )
-
-                                Spacer(modifier = Modifier.height(10.dp))
-
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    OutlinedButton(onClick = { onEdit(message) }) {
-                                        Text("Rediger")
-                                    }
-                                    TextButton(onClick = { onDelete(message) }) {
-                                        Text("Slett")
-                                    }
-                                }
-                            }
-                        }
+                        MessageCard(
+                            message = message,
+                            onEdit = { onEdit(message) },
+                            onDelete = { onDelete(message) },
+                        )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OverlaySetupCard(
+    permissionGranted: Boolean,
+    onRequestPermission: () -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "R4 overlay",
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                if (permissionGranted) {
+                    "Tillatelse til å vises over andre apper er gitt."
+                } else {
+                    "R4 trenger Android-tillatelsen «Vis over andre apper» før overlayen kan brukes."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+            )
+
+            if (!permissionGranted) {
+                Spacer(modifier = Modifier.height(10.dp))
+                OutlinedButton(onClick = onRequestPermission) {
+                    Text("Gi overlay-tillatelse")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MessageCard(
+    message: Message,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = message.title,
+                style = MaterialTheme.typography.titleMedium,
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedButton(onClick = onEdit) {
+                    Text("Rediger")
+                }
+                TextButton(onClick = onDelete) {
+                    Text("Slett")
                 }
             }
         }
@@ -229,7 +302,7 @@ private fun MessageEditor(
                     style = MaterialTheme.typography.headlineSmall,
                 )
                 Text(
-                    "Teksten lagres nøyaktig slik den er skrevet eller limt inn.",
+                    "Emoji, linjeskift, tomme linjer og mellomrom bevares.",
                     style = MaterialTheme.typography.bodySmall,
                 )
             }

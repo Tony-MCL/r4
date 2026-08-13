@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">R4</string>
+    <string name="saved_messages_count">Lagrede meldinger: %1$d</string>
+    <string name="new_message">Ny melding</string>
+    <string name="no_messages">Ingen meldinger ennå. Opprett den første ved å skrive eller lime inn teksten du vil lagre.</string>
+    <string name="choose_apps_title">Velg apper for R4</string>
+    <string name="choose_apps_warning">R4 viser en liste over startbare apper på denne enheten slik at du kan velge hvilke apper du vil bruke sammen med R4.\n\nR4 leser ikke innholdet i disse appene. Valgene dine lagres kun lokalt på enheten.</string>
+    <string name="continue_action">Fortsett</string>
+    <string name="cancel">Avbryt</string>
+    <string name="manage_apps">Administrer apper</string>
+    <string name="done">Ferdig</string>
+    <string name="delete_message_title">Slette melding?</string>
+    <string name="delete_message_text">«%1$s» slettes permanent fra denne enheten.</string>
+    <string name="delete">Slett</string>
+    <string name="target_app">Målapp:</string>
+    <string name="none_selected">Ingen valgt</string>
+    <string name="choose_app">Velg app</string>
+    <string name="remove_target_app">Fjern målapp</string>
+    <string name="grant_overlay_permission">Gi overlay-tillatelse</string>
+    <string name="stop_overlay">Stopp overlay</string>
+    <string name="start_overlay">Start overlay</string>
+    <string name="back">← Tilbake</string>
+    <string name="settings_info">Innstillinger og info</string>
+    <string name="about_r4_collapsed">Om R4 ▼</string>
+    <string name="about_r4_expanded">Om R4 ▲</string>
+    <string name="about_r4_text">R4 lar deg lagre tekstene du bruker ofte og ha dem tilgjengelig i en flytende overlay over andre apper. Trykk på en lagret melding i overlayen for å kopiere hele teksten til utklippstavlen, og lim den inn der du trenger den. R4 endrer ikke teksten din og sender ingenting på dine vegne.</string>
+    <string name="app_management_collapsed">App-administrasjon ▼</string>
+    <string name="app_management_expanded">App-administrasjon ▲</string>
+    <string name="app_management_text">Velg hvilke apper som skal vises i målapp-rullegardinen på hovedskjermen.</string>
+    <string name="links">Lenker</string>
+    <string name="links_placeholder">Plassholder for personvern, vilkår, support og andre lenker som kreves ved publisering på Google Play.</string>
+    <string name="purchase">Kjøp</string>
+    <string name="purchase_placeholder">Kjøpsfunksjon legges til senere.</string>
+    <string name="edit">Rediger</string>
+    <string name="edit_message">Rediger melding</string>
+    <string name="format_preserved">Emoji, linjeskift, tomme linjer og mellomrom bevares.</string>
+    <string name="title_label">Tittel</string>
+    <string name="title_placeholder">🐻 Bear, KvK, Alliance Rules …</string>
+    <string name="text_label">Tekst</string>
+    <string name="text_placeholder">Skriv eller lim inn melding …</string>
+    <string name="save">Lagre</string>
+    <string name="overlay_no_saved_messages">Ingen lagrede meldinger</string>
+    <string name="copied">Kopiert</string>
+    <string name="clipboard_label">R4-melding</string>
+</resources>

@@ -17,6 +17,7 @@
     <string name="how_r4_works">Slik fungerer R4</string>
     <string name="how_r4_works_title">Slik fungerer R4</string>
     <string name="how_r4_works_text">Opprett meldinger, aktiver overlay, trykk på en tittel for å kopiere teksten, og lim inn i appen du bruker.</string>
+    <string name="copyright">(c) 2026 Morning Coffee Labs</string>
 
     <string name="choose_apps_title">Velg apper for R4</string>
     <string name="choose_apps_warning">R4 viser en liste over startbare apper på denne enheten slik at du kan velge hvilke apper du vil bruke sammen med R4.\n\nR4 leser ikke innholdet i disse appene. Valgene dine lagres kun lokalt på enheten.</string>

@@ -1,6 +1,7 @@
 package com.morningcoffeelabs.r4
 
 import android.content.Intent
+import android.content.pm.ResolveInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -34,9 +35,21 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import java.util.UUID
 
+private data class TargetApp(
+    val label: String,
+    val packageName: String,
+)
+
 class MainActivity : ComponentActivity() {
     private var overlayPermissionGranted by mutableStateOf(false)
     private var overlayRunning by mutableStateOf(false)
+    private var targetAppName by mutableStateOf<String?>(null)
+    private var showTargetAppPicker by mutableStateOf(false)
+    private var targetApps by mutableStateOf<List<TargetApp>>(emptyList())
+
+    private val targetPreferences by lazy {
+        getSharedPreferences("r4_target_app", MODE_PRIVATE)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,6 +57,7 @@ class MainActivity : ComponentActivity() {
         val repository = MessageRepository(this)
         overlayPermissionGranted = OverlayPermission.isGranted(this)
         overlayRunning = OverlayService.isRunning
+        refreshTargetApp()
 
         setContent {
             MaterialTheme {
@@ -51,13 +65,33 @@ class MainActivity : ComponentActivity() {
                     repository = repository,
                     overlayPermissionGranted = overlayPermissionGranted,
                     overlayRunning = overlayRunning,
-                    onRequestOverlayPermission = {
-                        OverlayPermission.openSettings(this)
+                    targetAppName = targetAppName,
+                    targetApps = targetApps,
+                    showTargetAppPicker = showTargetAppPicker,
+                    onRequestOverlayPermission = { OverlayPermission.openSettings(this) },
+                    onChooseTargetApp = {
+                        targetApps = loadLaunchableApps()
+                        showTargetAppPicker = true
+                    },
+                    onTargetAppSelected = { app ->
+                        targetPreferences.edit()
+                            .putString("package_name", app.packageName)
+                            .putString("label", app.label)
+                            .apply()
+                        targetAppName = app.label
+                        showTargetAppPicker = false
+                    },
+                    onDismissTargetAppPicker = { showTargetAppPicker = false },
+                    onClearTargetApp = {
+                        targetPreferences.edit().clear().apply()
+                        targetAppName = null
                     },
                     onStartOverlay = {
                         startService(Intent(this, OverlayService::class.java))
                         overlayRunning = true
-                        moveTaskToBack(true)
+                        if (!launchSelectedTargetApp()) {
+                            moveTaskToBack(true)
+                        }
                     },
                     onStopOverlay = {
                         stopService(Intent(this, OverlayService::class.java))
@@ -72,6 +106,35 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         overlayPermissionGranted = OverlayPermission.isGranted(this)
         overlayRunning = OverlayService.isRunning
+        refreshTargetApp()
+    }
+
+    private fun loadLaunchableApps(): List<TargetApp> {
+        val launcherIntent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+        }
+
+        return packageManager.queryIntentActivities(launcherIntent, 0)
+            .filter { it.activityInfo.packageName != packageName }
+            .map { resolveInfo: ResolveInfo ->
+                TargetApp(
+                    label = resolveInfo.loadLabel(packageManager).toString(),
+                    packageName = resolveInfo.activityInfo.packageName,
+                )
+            }
+            .distinctBy { it.packageName }
+            .sortedBy { it.label.lowercase() }
+    }
+
+    private fun launchSelectedTargetApp(): Boolean {
+        val packageName = targetPreferences.getString("package_name", null) ?: return false
+        val launchIntent = packageManager.getLaunchIntentForPackage(packageName) ?: return false
+        startActivity(launchIntent)
+        return true
+    }
+
+    private fun refreshTargetApp() {
+        targetAppName = targetPreferences.getString("label", null)
     }
 }
 
@@ -80,56 +143,41 @@ private fun R4App(
     repository: MessageRepository,
     overlayPermissionGranted: Boolean,
     overlayRunning: Boolean,
+    targetAppName: String?,
+    targetApps: List<TargetApp>,
+    showTargetAppPicker: Boolean,
     onRequestOverlayPermission: () -> Unit,
+    onChooseTargetApp: () -> Unit,
+    onTargetAppSelected: (TargetApp) -> Unit,
+    onDismissTargetAppPicker: () -> Unit,
+    onClearTargetApp: () -> Unit,
     onStartOverlay: () -> Unit,
     onStopOverlay: () -> Unit,
 ) {
     val messages = remember {
-        mutableStateListOf<Message>().apply {
-            addAll(repository.loadMessages())
-        }
+        mutableStateListOf<Message>().apply { addAll(repository.loadMessages()) }
     }
-
     var editingMessage by remember { mutableStateOf<Message?>(null) }
     var isCreating by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<Message?>(null) }
 
-    fun persist() {
-        repository.saveMessages(messages.toList())
-    }
+    fun persist() = repository.saveMessages(messages.toList())
 
     if (isCreating || editingMessage != null) {
         MessageEditor(
             existingMessage = editingMessage,
-            onCancel = {
-                isCreating = false
-                editingMessage = null
-            },
+            onCancel = { isCreating = false; editingMessage = null },
             onSave = { title, text ->
                 val now = System.currentTimeMillis()
                 val existing = editingMessage
-
                 if (existing == null) {
-                    messages.add(
-                        Message(
-                            id = UUID.randomUUID().toString(),
-                            title = title,
-                            text = text,
-                            createdAt = now,
-                            updatedAt = now,
-                        )
-                    )
+                    messages.add(Message(UUID.randomUUID().toString(), title, text, now, now))
                 } else {
                     val index = messages.indexOfFirst { it.id == existing.id }
                     if (index >= 0) {
-                        messages[index] = existing.copy(
-                            title = title,
-                            text = text,
-                            updatedAt = now,
-                        )
+                        messages[index] = existing.copy(title = title, text = text, updatedAt = now)
                     }
                 }
-
                 persist()
                 isCreating = false
                 editingMessage = null
@@ -140,12 +188,38 @@ private fun R4App(
             messages = messages,
             overlayPermissionGranted = overlayPermissionGranted,
             overlayRunning = overlayRunning,
+            targetAppName = targetAppName,
             onRequestOverlayPermission = onRequestOverlayPermission,
+            onChooseTargetApp = onChooseTargetApp,
+            onClearTargetApp = onClearTargetApp,
             onStartOverlay = onStartOverlay,
             onStopOverlay = onStopOverlay,
             onCreate = { isCreating = true },
             onEdit = { editingMessage = it },
             onDelete = { pendingDelete = it },
+        )
+    }
+
+    if (showTargetAppPicker) {
+        AlertDialog(
+            onDismissRequest = onDismissTargetAppPicker,
+            title = { Text("Velg app") },
+            text = {
+                LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                    items(targetApps, key = { it.packageName }) { app ->
+                        TextButton(
+                            onClick = { onTargetAppSelected(app) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(app.label, modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = onDismissTargetAppPicker) { Text("Avbryt") }
+            },
         )
     }
 
@@ -155,20 +229,14 @@ private fun R4App(
             title = { Text("Slette melding?") },
             text = { Text("«${message.title}» slettes permanent fra denne enheten.") },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        messages.removeAll { it.id == message.id }
-                        persist()
-                        pendingDelete = null
-                    }
-                ) {
-                    Text("Slett")
-                }
+                TextButton(onClick = {
+                    messages.removeAll { it.id == message.id }
+                    persist()
+                    pendingDelete = null
+                }) { Text("Slett") }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) {
-                    Text("Avbryt")
-                }
+                TextButton(onClick = { pendingDelete = null }) { Text("Avbryt") }
             },
         )
     }
@@ -179,7 +247,10 @@ private fun MessageList(
     messages: List<Message>,
     overlayPermissionGranted: Boolean,
     overlayRunning: Boolean,
+    targetAppName: String?,
     onRequestOverlayPermission: () -> Unit,
+    onChooseTargetApp: () -> Unit,
+    onClearTargetApp: () -> Unit,
     onStartOverlay: () -> Unit,
     onStopOverlay: () -> Unit,
     onCreate: () -> Unit,
@@ -190,10 +261,7 @@ private fun MessageList(
         topBar = {
             Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
                 Text("R4", style = MaterialTheme.typography.headlineMedium)
-                Text(
-                    "Lagrede meldinger: ${messages.size}",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                Text("Lagrede meldinger: ${messages.size}", style = MaterialTheme.typography.bodyMedium)
             }
         }
     ) { innerPadding ->
@@ -203,30 +271,21 @@ private fun MessageList(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
         ) {
-            Button(
-                onClick = onCreate,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Ny melding")
-            }
-
+            Button(onClick = onCreate, modifier = Modifier.fillMaxWidth()) { Text("Ny melding") }
             Spacer(modifier = Modifier.height(12.dp))
-
             OverlaySetupCard(
                 permissionGranted = overlayPermissionGranted,
                 overlayRunning = overlayRunning,
+                targetAppName = targetAppName,
                 onRequestPermission = onRequestOverlayPermission,
+                onChooseTargetApp = onChooseTargetApp,
+                onClearTargetApp = onClearTargetApp,
                 onStartOverlay = onStartOverlay,
                 onStopOverlay = onStopOverlay,
             )
-
             Spacer(modifier = Modifier.height(16.dp))
-
             if (messages.isEmpty()) {
-                Text(
-                    "Ingen meldinger ennå. Opprett den første ved å skrive eller lime inn teksten du vil lagre.",
-                    style = MaterialTheme.typography.bodyLarge,
-                )
+                Text("Ingen meldinger ennå. Opprett den første ved å skrive eller lime inn teksten du vil lagre.")
             } else {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -249,16 +308,16 @@ private fun MessageList(
 private fun OverlaySetupCard(
     permissionGranted: Boolean,
     overlayRunning: Boolean,
+    targetAppName: String?,
     onRequestPermission: () -> Unit,
+    onChooseTargetApp: () -> Unit,
+    onClearTargetApp: () -> Unit,
     onStartOverlay: () -> Unit,
     onStopOverlay: () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                "R4 overlay",
-                style = MaterialTheme.typography.titleMedium,
-            )
+            Text("R4 overlay", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 when {
@@ -268,27 +327,20 @@ private fun OverlaySetupCard(
                 },
                 style = MaterialTheme.typography.bodyMedium,
             )
-
             Spacer(modifier = Modifier.height(10.dp))
-
+            Text("Målapp: ${targetAppName ?: "Ingen valgt"}")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onChooseTargetApp) {
+                    Text(if (targetAppName == null) "Velg app" else "Bytt app")
+                }
+                if (targetAppName != null) {
+                    TextButton(onClick = onClearTargetApp) { Text("Fjern") }
+                }
+            }
             when {
-                !permissionGranted -> {
-                    OutlinedButton(onClick = onRequestPermission) {
-                        Text("Gi overlay-tillatelse")
-                    }
-                }
-
-                overlayRunning -> {
-                    OutlinedButton(onClick = onStopOverlay) {
-                        Text("Stopp overlay")
-                    }
-                }
-
-                else -> {
-                    Button(onClick = onStartOverlay) {
-                        Text("Start overlay")
-                    }
-                }
+                !permissionGranted -> OutlinedButton(onClick = onRequestPermission) { Text("Gi overlay-tillatelse") }
+                overlayRunning -> OutlinedButton(onClick = onStopOverlay) { Text("Stopp overlay") }
+                else -> Button(onClick = onStartOverlay) { Text("Start overlay") }
             }
         }
     }
@@ -302,22 +354,11 @@ private fun MessageCard(
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = message.title,
-                style = MaterialTheme.typography.titleMedium,
-            )
-
+            Text(message.title, style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(10.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedButton(onClick = onEdit) {
-                    Text("Rediger")
-                }
-                TextButton(onClick = onDelete) {
-                    Text("Slett")
-                }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onEdit) { Text("Rediger") }
+                TextButton(onClick = onDelete) { Text("Slett") }
             }
         }
     }
@@ -327,16 +368,10 @@ private fun MessageCard(
 private fun MessageEditor(
     existingMessage: Message?,
     onCancel: () -> Unit,
-    onSave: (title: String, text: String) -> Unit,
+    onSave: (String, String) -> Unit,
 ) {
-    var title by remember(existingMessage?.id) {
-        mutableStateOf(existingMessage?.title.orEmpty())
-    }
-    var text by remember(existingMessage?.id) {
-        mutableStateOf(existingMessage?.text.orEmpty())
-    }
-
-    val canSave = title.isNotBlank()
+    var title by remember(existingMessage?.id) { mutableStateOf(existingMessage?.title.orEmpty()) }
+    var text by remember(existingMessage?.id) { mutableStateOf(existingMessage?.text.orEmpty()) }
 
     Scaffold(
         topBar = {
@@ -366,9 +401,7 @@ private fun MessageEditor(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-
             Spacer(modifier = Modifier.height(12.dp))
-
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
@@ -378,32 +411,19 @@ private fun MessageEditor(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                    fontFamily = FontFamily.Monospace,
-                ),
+                textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace),
             )
-
             Spacer(modifier = Modifier.height(12.dp))
-
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
             ) {
-                OutlinedButton(
-                    onClick = onCancel,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("Avbryt")
-                }
+                OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Avbryt") }
                 Button(
                     onClick = { onSave(title, text) },
-                    enabled = canSave,
+                    enabled = title.isNotBlank(),
                     modifier = Modifier.weight(1f),
-                ) {
-                    Text("Lagre")
-                }
+                ) { Text("Lagre") }
             }
         }
     }

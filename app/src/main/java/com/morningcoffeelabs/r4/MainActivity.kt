@@ -52,6 +52,7 @@ class MainActivity : ComponentActivity() {
     private var favoriteApps by mutableStateOf<List<TargetApp>>(emptyList())
     private var allTargetApps by mutableStateOf<List<TargetApp>>(emptyList())
     private var showManageApps by mutableStateOf(false)
+    private var showManageAppsWarning by mutableStateOf(false)
     private var showSettings by mutableStateOf(false)
 
     private val targetPreferences by lazy {
@@ -76,13 +77,21 @@ class MainActivity : ComponentActivity() {
                     favoriteApps = favoriteApps,
                     allTargetApps = allTargetApps,
                     showManageApps = showManageApps,
+                    showManageAppsWarning = showManageAppsWarning,
                     showSettings = showSettings,
                     onRequestOverlayPermission = { OverlayPermission.openSettings(this) },
                     onOpenSettings = { showSettings = true },
                     onCloseSettings = { showSettings = false },
                     onManageApps = {
+                        showManageAppsWarning = true
+                    },
+                    onContinueManageApps = {
+                        showManageAppsWarning = false
                         allTargetApps = loadLaunchableApps()
                         showManageApps = true
+                    },
+                    onCancelManageAppsWarning = {
+                        showManageAppsWarning = false
                     },
                     onFavoriteToggled = { app, enabled ->
                         setFavorite(app, enabled)
@@ -186,11 +195,14 @@ private fun R4App(
     favoriteApps: List<TargetApp>,
     allTargetApps: List<TargetApp>,
     showManageApps: Boolean,
+    showManageAppsWarning: Boolean,
     showSettings: Boolean,
     onRequestOverlayPermission: () -> Unit,
     onOpenSettings: () -> Unit,
     onCloseSettings: () -> Unit,
     onManageApps: () -> Unit,
+    onContinueManageApps: () -> Unit,
+    onCancelManageAppsWarning: () -> Unit,
     onFavoriteToggled: (TargetApp, Boolean) -> Unit,
     onDismissManageApps: () -> Unit,
     onSelectTargetApp: (TargetApp) -> Unit,
@@ -242,6 +254,28 @@ private fun R4App(
             onCreate = { isCreating = true },
             onEdit = { editingMessage = it },
             onDelete = { pendingDelete = it },
+        )
+    }
+
+    if (showManageAppsWarning) {
+        AlertDialog(
+            onDismissRequest = onCancelManageAppsWarning,
+            title = { Text("Velg apper for R4") },
+            text = {
+                Text(
+                    "R4 viser en liste over startbare apper på denne enheten slik at du kan velge hvilke apper du vil bruke sammen med R4.\n\nR4 leser ikke innholdet i disse appene. Valgene dine lagres kun lokalt på enheten."
+                )
+            },
+            confirmButton = {
+                Button(onClick = onContinueManageApps) {
+                    Text("Fortsett")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onCancelManageAppsWarning) {
+                    Text("Avbryt")
+                }
+            },
         )
     }
 

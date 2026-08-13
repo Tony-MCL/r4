@@ -7,11 +7,15 @@
     <string name="welcome_title">Welcome to R4</string>
     <string name="welcome_subtitle">Your floating text archive for quick messages</string>
     <string name="new_message_subtitle">Create a new message</string>
+    <string name="home_new_message_subtitle">Create a new message</string>
     <string name="my_messages">My messages</string>
     <string name="my_messages_subtitle">Manage your messages</string>
+    <string name="home_my_messages_subtitle">Manage your messages (%1$d)</string>
     <string name="start_overlay_subtitle">Activate the floating overlay</string>
     <string name="stop_overlay_subtitle">Deactivate the floating overlay</string>
+    <string name="home_overlay_subtitle">Activate or deactivate the floating overlay</string>
     <string name="how_r4_works">How R4 works</string>
+    <string name="how_r4_works_title">How R4 works</string>
     <string name="how_r4_works_text">Create messages, activate the overlay, tap a title to copy the text, and paste it into the app you are using.</string>
 
     <string name="choose_apps_title">Choose apps for R4</string>

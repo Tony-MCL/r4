@@ -89,8 +89,8 @@ class OverlayService : Service() {
 
         val bubbleX = positionPreferences.getInt(KEY_X, 24)
         val bubbleY = positionPreferences.getInt(KEY_Y, 180)
-        val panelWidth = min(dp(240), max(dp(180), screenWidth - dp(24)))
-        val maxPanelHeight = max(dp(160), (screenHeight * 0.68f).toInt())
+        val panelWidth = min(dp(190), max(dp(160), screenWidth - dp(24)))
+        val maxPanelHeight = max(dp(150), (screenHeight * 0.34f).toInt())
         val bubbleApproxSize = dp(52)
 
         val openToRight = bubbleX + bubbleApproxSize / 2 < screenWidth / 2
@@ -109,23 +109,23 @@ class OverlayService : Service() {
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(10), dp(4), dp(6), dp(4))
+            setPadding(dp(8), dp(3), dp(4), dp(3))
         }
 
         val title = TextView(this).apply {
             text = "R4"
-            textSize = 14f
+            textSize = 13f
             setTextColor(0xFFBDBDBD.toInt())
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(4), dp(4), dp(4), dp(4))
+            setPadding(dp(4), dp(3), dp(4), dp(3))
         }
 
         val close = TextView(this).apply {
             text = "×"
-            textSize = 22f
+            textSize = 20f
             setTextColor(0xFFE0E0E0.toInt())
             gravity = Gravity.CENTER
-            setPadding(dp(10), dp(2), dp(10), dp(2))
+            setPadding(dp(8), dp(1), dp(8), dp(1))
             isClickable = true
             isFocusable = true
             setOnClickListener { stopSelf() }
@@ -149,7 +149,7 @@ class OverlayService : Service() {
 
         val listContent = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(0, 0, 0, dp(6))
+            setPadding(0, 0, 0, dp(4))
         }
 
         if (messages.isEmpty()) {
@@ -236,12 +236,12 @@ class OverlayService : Service() {
     ): TextView {
         return TextView(this).apply {
             text = title
-            textSize = 16f
+            textSize = 15f
             setTextColor(
                 if (enabled) 0xFFFFFFFF.toInt() else 0xFF8A8A8A.toInt()
             )
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(14), dp(10), dp(14), dp(10))
+            setPadding(dp(12), dp(8), dp(12), dp(8))
             isClickable = enabled
             isFocusable = enabled
             if (enabled) {
@@ -275,7 +275,7 @@ class OverlayService : Service() {
                 MotionEvent.ACTION_MOVE -> {
                     val dx = (event.rawX - initialTouchX).toInt()
                     val dy = (event.rawY - initialTouchY).toInt()
-                    val bounds = currentScreenBounds()
+                    val boundsNow = currentScreenBounds()
 
                     if (abs(dx) > dp(4) || abs(dy) > dp(4)) {
                         moved = true
@@ -284,8 +284,8 @@ class OverlayService : Service() {
                     val viewWidth = if (params.width > 0) params.width else dp(64)
                     val viewHeight = if (params.height > 0) params.height else dp(64)
 
-                    params.x = (initialX + dx).coerceIn(0, max(0, bounds.width() - viewWidth))
-                    params.y = (initialY + dy).coerceIn(0, max(0, bounds.height() - viewHeight))
+                    params.x = (initialX + dx).coerceIn(0, max(0, boundsNow.width() - viewWidth))
+                    params.y = (initialY + dy).coerceIn(0, max(0, boundsNow.height() - viewHeight))
                     overlayView?.let { windowManager.updateViewLayout(it, params) }
                     true
                 }

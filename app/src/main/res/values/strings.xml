@@ -4,6 +4,15 @@
     <string name="saved_messages_count">Saved messages: %1$d</string>
     <string name="new_message">New message</string>
     <string name="no_messages">No messages yet. Create the first one by writing or pasting the text you want to save.</string>
+    <string name="welcome_title">Welcome to R4</string>
+    <string name="welcome_subtitle">Your floating text archive for quick messages</string>
+    <string name="new_message_subtitle">Create a new message</string>
+    <string name="my_messages">My messages</string>
+    <string name="my_messages_subtitle">Manage your messages</string>
+    <string name="start_overlay_subtitle">Activate the floating overlay</string>
+    <string name="stop_overlay_subtitle">Deactivate the floating overlay</string>
+    <string name="how_r4_works">How R4 works</string>
+    <string name="how_r4_works_text">Create messages, activate the overlay, tap a title to copy the text, and paste it into the app you are using.</string>
 
     <string name="choose_apps_title">Choose apps for R4</string>
     <string name="choose_apps_warning">R4 shows a list of launchable apps on this device so you can choose which apps you want to use with R4.\n\nR4 does not read the content of these apps. Your choices are stored only on this device.</string>

@@ -13,6 +13,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -49,25 +50,24 @@ class OverlayService : Service() {
     private fun showCollapsedOverlay() {
         removeOverlayView()
 
-        val bubble = TextView(this).apply {
-            text = getString(R.string.app_name)
-            gravity = Gravity.CENTER
-            textSize = 16f
-            setTextColor(0xFFFFFFFF.toInt())
-            setPadding(dp(14), dp(10), dp(14), dp(10))
+        val bubble = ImageView(this).apply {
+            setImageResource(R.drawable.r4_logo)
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setPadding(dp(6), dp(6), dp(6), dp(6))
             background = roundedBackground(
                 color = 0xFF333333.toInt(),
                 radiusDp = 18f,
             )
         }
 
+        val bubbleSize = dp(52)
         val bounds = currentScreenBounds()
         val params = createWindowParams(
-            width = WindowManager.LayoutParams.WRAP_CONTENT,
-            height = WindowManager.LayoutParams.WRAP_CONTENT,
+            width = bubbleSize,
+            height = bubbleSize,
         ).apply {
-            x = positionPreferences.getInt(KEY_X, 24).coerceIn(0, max(0, bounds.width() - dp(64)))
-            y = positionPreferences.getInt(KEY_Y, 180).coerceIn(0, max(0, bounds.height() - dp(64)))
+            x = positionPreferences.getInt(KEY_X, 24).coerceIn(0, max(0, bounds.width() - bubbleSize))
+            y = positionPreferences.getInt(KEY_Y, 180).coerceIn(0, max(0, bounds.height() - bubbleSize))
         }
 
         attachDragAndClick(
@@ -113,12 +113,10 @@ class OverlayService : Service() {
             setPadding(dp(8), dp(3), dp(4), dp(3))
         }
 
-        val title = TextView(this).apply {
-            text = getString(R.string.app_name)
-            textSize = 13f
-            setTextColor(0xFFBDBDBD.toInt())
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(4), dp(3), dp(4), dp(3))
+        val title = ImageView(this).apply {
+            setImageResource(R.drawable.r4_logo)
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setPadding(dp(4), dp(2), dp(4), dp(2))
         }
 
         val close = TextView(this).apply {
@@ -132,18 +130,13 @@ class OverlayService : Service() {
             setOnClickListener { stopSelf() }
         }
 
+        val titleParams = LinearLayout.LayoutParams(0, dp(36), 1f)
         if (openToRight) {
-            header.addView(
-                title,
-                LinearLayout.LayoutParams(0, WindowManager.LayoutParams.WRAP_CONTENT, 1f),
-            )
+            header.addView(title, titleParams)
             header.addView(close)
         } else {
             header.addView(close)
-            header.addView(
-                title,
-                LinearLayout.LayoutParams(0, WindowManager.LayoutParams.WRAP_CONTENT, 1f),
-            )
+            header.addView(title, titleParams)
         }
 
         panel.addView(header)

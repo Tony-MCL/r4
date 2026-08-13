@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +20,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -126,6 +129,7 @@ class MainActivity : ComponentActivity() {
         val launcherIntent = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_LAUNCHER)
         }
+
         return packageManager.queryIntentActivities(launcherIntent, 0)
             .filter { it.activityInfo.packageName != packageName }
             .map { resolveInfo: ResolveInfo ->
@@ -139,18 +143,35 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun setFavorite(app: TargetApp, enabled: Boolean) {
-        val favorites = targetPreferences.getStringSet("favorite_packages", emptySet())?.toMutableSet() ?: mutableSetOf()
-        if (enabled) favorites.add(app.packageName) else favorites.remove(app.packageName)
+        val favorites = targetPreferences
+            .getStringSet("favorite_packages", emptySet())
+            ?.toMutableSet()
+            ?: mutableSetOf()
+
+        if (enabled) {
+            favorites.add(app.packageName)
+        } else {
+            favorites.remove(app.packageName)
+        }
         targetPreferences.edit().putStringSet("favorite_packages", favorites).apply()
 
-        val labels = targetPreferences.getStringSet("favorite_labels", emptySet())?.toMutableSet() ?: mutableSetOf()
+        val labels = targetPreferences
+            .getStringSet("favorite_labels", emptySet())
+            ?.toMutableSet()
+            ?: mutableSetOf()
+
         labels.removeAll { it.substringAfter('|', "") == app.packageName }
-        if (enabled) labels.add("${app.label}|${app.packageName}")
+        if (enabled) {
+            labels.add("${app.label}|${app.packageName}")
+        }
         targetPreferences.edit().putStringSet("favorite_labels", labels).apply()
 
         val selectedPackage = targetPreferences.getString("package_name", null)
         if (!enabled && selectedPackage == app.packageName) {
-            targetPreferences.edit().remove("package_name").remove("label").apply()
+            targetPreferences.edit()
+                .remove("package_name")
+                .remove("label")
+                .apply()
             targetAppName = null
         }
     }
@@ -161,6 +182,7 @@ class MainActivity : ComponentActivity() {
             val split = entry.split('|', limit = 2)
             if (split.size == 2) TargetApp(split[0], split[1]) else null
         }.sortedBy { it.label.lowercase() }
+
         targetAppName = targetPreferences.getString("label", null)
     }
 
@@ -191,29 +213,51 @@ private fun R4App(
     onStopOverlay: () -> Unit,
 ) {
     val messages = remember {
-        mutableStateListOf<Message>().apply { addAll(repository.loadMessages()) }
+        mutableStateListOf<Message>().apply {
+            addAll(repository.loadMessages())
+        }
     }
+
     var editingMessage by remember { mutableStateOf<Message?>(null) }
     var isCreating by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<Message?>(null) }
 
-    fun persist() = repository.saveMessages(messages.toList())
+    fun persist() {
+        repository.saveMessages(messages.toList())
+    }
 
     if (isCreating || editingMessage != null) {
         MessageEditor(
             existingMessage = editingMessage,
-            onCancel = { isCreating = false; editingMessage = null },
+            onCancel = {
+                isCreating = false
+                editingMessage = null
+            },
             onSave = { title, text ->
                 val now = System.currentTimeMillis()
                 val existing = editingMessage
+
                 if (existing == null) {
-                    messages.add(Message(UUID.randomUUID().toString(), title, text, now, now))
+                    messages.add(
+                        Message(
+                            id = UUID.randomUUID().toString(),
+                            title = title,
+                            text = text,
+                            createdAt = now,
+                            updatedAt = now,
+                        )
+                    )
                 } else {
                     val index = messages.indexOfFirst { it.id == existing.id }
                     if (index >= 0) {
-                        messages[index] = existing.copy(title = title, text = text, updatedAt = now)
+                        messages[index] = existing.copy(
+                            title = title,
+                            text = text,
+                            updatedAt = now,
+                        )
                     }
                 }
+
                 persist()
                 isCreating = false
                 editingMessage = null
@@ -240,6 +284,7 @@ private fun R4App(
 
     if (showManageApps) {
         val favoritePackages = favoriteApps.map { it.packageName }.toSet()
+
         AlertDialog(
             onDismissRequest = onDismissManageApps,
             title = { Text("Administrer apper") },
@@ -261,7 +306,9 @@ private fun R4App(
                 }
             },
             confirmButton = {
-                TextButton(onClick = onDismissManageApps) { Text("Ferdig") }
+                TextButton(onClick = onDismissManageApps) {
+                    Text("Ferdig")
+                }
             },
         )
     }
@@ -272,14 +319,20 @@ private fun R4App(
             title = { Text("Slette melding?") },
             text = { Text("«${message.title}» slettes permanent fra denne enheten.") },
             confirmButton = {
-                TextButton(onClick = {
-                    messages.removeAll { it.id == message.id }
-                    persist()
-                    pendingDelete = null
-                }) { Text("Slett") }
+                TextButton(
+                    onClick = {
+                        messages.removeAll { it.id == message.id }
+                        persist()
+                        pendingDelete = null
+                    }
+                ) {
+                    Text("Slett")
+                }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("Avbryt") }
+                TextButton(onClick = { pendingDelete = null }) {
+                    Text("Avbryt")
+                }
             },
         )
     }
@@ -306,7 +359,10 @@ private fun MessageList(
         topBar = {
             Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
                 Text("R4", style = MaterialTheme.typography.headlineMedium)
-                Text("Lagrede meldinger: ${messages.size}", style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    "Lagrede meldinger: ${messages.size}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
         }
     ) { innerPadding ->
@@ -316,8 +372,15 @@ private fun MessageList(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
         ) {
-            Button(onClick = onCreate, modifier = Modifier.fillMaxWidth()) { Text("Ny melding") }
+            Button(
+                onClick = onCreate,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Ny melding")
+            }
+
             Spacer(modifier = Modifier.height(12.dp))
+
             OverlaySetupCard(
                 permissionGranted = overlayPermissionGranted,
                 overlayRunning = overlayRunning,
@@ -330,9 +393,14 @@ private fun MessageList(
                 onStartOverlay = onStartOverlay,
                 onStopOverlay = onStopOverlay,
             )
+
             Spacer(modifier = Modifier.height(16.dp))
+
             if (messages.isEmpty()) {
-                Text("Ingen meldinger ennå. Opprett den første ved å skrive eller lime inn teksten du vil lagre.")
+                Text(
+                    "Ingen meldinger ennå. Opprett den første ved å skrive eller lime inn teksten du vil lagre.",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
             } else {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -364,10 +432,13 @@ private fun OverlaySetupCard(
     onStartOverlay: () -> Unit,
     onStopOverlay: () -> Unit,
 ) {
+    var dropdownExpanded by remember { mutableStateOf(false) }
+
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("R4 overlay", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(4.dp))
+
             Text(
                 when {
                     !permissionGranted -> "R4 trenger Android-tillatelsen «Vis over andre apper» før overlayen kan brukes."
@@ -376,34 +447,73 @@ private fun OverlaySetupCard(
                 },
                 style = MaterialTheme.typography.bodyMedium,
             )
-            Spacer(modifier = Modifier.height(10.dp))
-            Text("Målapp: ${targetAppName ?: "Ingen valgt"}")
-            Spacer(modifier = Modifier.height(6.dp))
 
-            if (favoriteApps.isEmpty()) {
-                Text("Ingen favorittapper valgt.", style = MaterialTheme.typography.bodySmall)
-            } else {
-                favoriteApps.forEach { app ->
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text("Målapp:")
+
+                Box {
                     TextButton(
-                        onClick = { onSelectTargetApp(app) },
-                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { dropdownExpanded = true },
+                        enabled = favoriteApps.isNotEmpty(),
                     ) {
-                        Text(app.label, modifier = Modifier.fillMaxWidth())
+                        Text(
+                            if (favoriteApps.isEmpty()) {
+                                "Ingen valgt"
+                            } else {
+                                "${targetAppName ?: "Velg app"} ▼"
+                            }
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = dropdownExpanded,
+                        onDismissRequest = { dropdownExpanded = false },
+                    ) {
+                        favoriteApps.forEach { app ->
+                            DropdownMenuItem(
+                                text = { Text(app.label) },
+                                onClick = {
+                                    onSelectTargetApp(app)
+                                    dropdownExpanded = false
+                                },
+                            )
+                        }
                     }
                 }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = onManageApps) { Text("Administrer apper") }
+                TextButton(onClick = onManageApps) {
+                    Text("Administrer apper")
+                }
                 if (targetAppName != null) {
-                    TextButton(onClick = onClearTargetApp) { Text("Fjern målapp") }
+                    TextButton(onClick = onClearTargetApp) {
+                        Text("Fjern målapp")
+                    }
                 }
             }
 
             when {
-                !permissionGranted -> OutlinedButton(onClick = onRequestPermission) { Text("Gi overlay-tillatelse") }
-                overlayRunning -> OutlinedButton(onClick = onStopOverlay) { Text("Stopp overlay") }
-                else -> Button(onClick = onStartOverlay) { Text("Start overlay") }
+                !permissionGranted -> {
+                    OutlinedButton(onClick = onRequestPermission) {
+                        Text("Gi overlay-tillatelse")
+                    }
+                }
+                overlayRunning -> {
+                    OutlinedButton(onClick = onStopOverlay) {
+                        Text("Stopp overlay")
+                    }
+                }
+                else -> {
+                    Button(onClick = onStartOverlay) {
+                        Text("Start overlay")
+                    }
+                }
             }
         }
     }
@@ -417,11 +527,20 @@ private fun MessageCard(
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(message.title, style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = message.title,
+                style = MaterialTheme.typography.titleMedium,
+            )
+
             Spacer(modifier = Modifier.height(10.dp))
+
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onEdit) { Text("Rediger") }
-                TextButton(onClick = onDelete) { Text("Slett") }
+                OutlinedButton(onClick = onEdit) {
+                    Text("Rediger")
+                }
+                TextButton(onClick = onDelete) {
+                    Text("Slett")
+                }
             }
         }
     }
@@ -431,10 +550,16 @@ private fun MessageCard(
 private fun MessageEditor(
     existingMessage: Message?,
     onCancel: () -> Unit,
-    onSave: (String, String) -> Unit,
+    onSave: (title: String, text: String) -> Unit,
 ) {
-    var title by remember(existingMessage?.id) { mutableStateOf(existingMessage?.title.orEmpty()) }
-    var text by remember(existingMessage?.id) { mutableStateOf(existingMessage?.text.orEmpty()) }
+    var title by remember(existingMessage?.id) {
+        mutableStateOf(existingMessage?.title.orEmpty())
+    }
+    var text by remember(existingMessage?.id) {
+        mutableStateOf(existingMessage?.text.orEmpty())
+    }
+
+    val canSave = title.isNotBlank()
 
     Scaffold(
         topBar = {
@@ -464,7 +589,9 @@ private fun MessageEditor(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
+
             Spacer(modifier = Modifier.height(12.dp))
+
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
@@ -474,19 +601,32 @@ private fun MessageEditor(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace),
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                    fontFamily = FontFamily.Monospace,
+                ),
             )
+
             Spacer(modifier = Modifier.height(12.dp))
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
             ) {
-                OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Avbryt") }
+                OutlinedButton(
+                    onClick = onCancel,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Avbryt")
+                }
                 Button(
                     onClick = { onSave(title, text) },
-                    enabled = title.isNotBlank(),
+                    enabled = canSave,
                     modifier = Modifier.weight(1f),
-                ) { Text("Lagre") }
+                ) {
+                    Text("Lagre")
+                }
             }
         }
     }

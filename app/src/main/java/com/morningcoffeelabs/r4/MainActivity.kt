@@ -43,6 +43,7 @@ class MainActivity : ComponentActivity() {
 
         val repository = MessageRepository(this)
         overlayPermissionGranted = OverlayPermission.isGranted(this)
+        overlayRunning = OverlayService.isRunning
 
         setContent {
             MaterialTheme {
@@ -56,6 +57,7 @@ class MainActivity : ComponentActivity() {
                     onStartOverlay = {
                         startService(Intent(this, OverlayService::class.java))
                         overlayRunning = true
+                        moveTaskToBack(true)
                     },
                     onStopOverlay = {
                         stopService(Intent(this, OverlayService::class.java))
@@ -69,6 +71,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         overlayPermissionGranted = OverlayPermission.isGranted(this)
+        overlayRunning = OverlayService.isRunning
     }
 }
 

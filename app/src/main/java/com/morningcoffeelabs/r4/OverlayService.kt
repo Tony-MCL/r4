@@ -12,18 +12,20 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 
 class OverlayService : Service() {
     private lateinit var windowManager: WindowManager
     private lateinit var repository: MessageRepository
 
     private var overlayView: View? = null
-    private var isExpanded = false
 
     private val positionPreferences by lazy {
         getSharedPreferences(PREFS_OVERLAY_POSITION, Context.MODE_PRIVATE)
@@ -44,7 +46,6 @@ class OverlayService : Service() {
     }
 
     private fun showCollapsedOverlay() {
-        isExpanded = false
         removeOverlayView()
 
         val bubble = TextView(this).apply {
@@ -59,12 +60,13 @@ class OverlayService : Service() {
             )
         }
 
+        val bounds = currentScreenBounds()
         val params = createWindowParams(
             width = WindowManager.LayoutParams.WRAP_CONTENT,
             height = WindowManager.LayoutParams.WRAP_CONTENT,
         ).apply {
-            x = positionPreferences.getInt(KEY_X, 24)
-            y = positionPreferences.getInt(KEY_Y, 180)
+            x = positionPreferences.getInt(KEY_X, 24).coerceIn(0, max(0, bounds.width() - dp(64)))
+            y = positionPreferences.getInt(KEY_Y, 180).coerceIn(0, max(0, bounds.height() - dp(64)))
         }
 
         attachDragAndClick(
@@ -78,30 +80,80 @@ class OverlayService : Service() {
     }
 
     private fun showExpandedOverlay() {
-        isExpanded = true
         removeOverlayView()
 
         val messages = repository.loadMessages()
+        val bounds = currentScreenBounds()
+        val screenWidth = bounds.width()
+        val screenHeight = bounds.height()
 
-        val root = LinearLayout(this).apply {
+        val bubbleX = positionPreferences.getInt(KEY_X, 24)
+        val bubbleY = positionPreferences.getInt(KEY_Y, 180)
+        val panelWidth = min(dp(240), max(dp(180), screenWidth - dp(24)))
+        val maxPanelHeight = max(dp(160), (screenHeight * 0.68f).toInt())
+        val bubbleApproxSize = dp(52)
+
+        val openToRight = bubbleX + bubbleApproxSize / 2 < screenWidth / 2
+        val openDown = bubbleY + bubbleApproxSize / 2 < screenHeight / 2
+
+        val outer = FrameLayout(this)
+
+        val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             background = roundedBackground(
                 color = 0xF22A2A2A.toInt(),
                 radiusDp = 12f,
             )
-            setPadding(0, dp(6), 0, dp(6))
         }
 
-        val header = TextView(this).apply {
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(10), dp(4), dp(6), dp(4))
+        }
+
+        val title = TextView(this).apply {
             text = "R4"
             textSize = 14f
             setTextColor(0xFFBDBDBD.toInt())
-            setPadding(dp(14), dp(6), dp(14), dp(8))
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(4), dp(4), dp(4), dp(4))
         }
-        root.addView(header)
+
+        val close = TextView(this).apply {
+            text = "×"
+            textSize = 22f
+            setTextColor(0xFFE0E0E0.toInt())
+            gravity = Gravity.CENTER
+            setPadding(dp(10), dp(2), dp(10), dp(2))
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { stopSelf() }
+        }
+
+        if (openToRight) {
+            header.addView(
+                title,
+                LinearLayout.LayoutParams(0, WindowManager.LayoutParams.WRAP_CONTENT, 1f),
+            )
+            header.addView(close)
+        } else {
+            header.addView(close)
+            header.addView(
+                title,
+                LinearLayout.LayoutParams(0, WindowManager.LayoutParams.WRAP_CONTENT, 1f),
+            )
+        }
+
+        panel.addView(header)
+
+        val listContent = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, 0, 0, dp(6))
+        }
 
         if (messages.isEmpty()) {
-            root.addView(
+            listContent.addView(
                 createListRow(
                     title = "Ingen lagrede meldinger",
                     enabled = false,
@@ -110,7 +162,7 @@ class OverlayService : Service() {
             )
         } else {
             messages.forEach { message ->
-                root.addView(
+                listContent.addView(
                     createListRow(
                         title = message.title,
                         enabled = true,
@@ -126,25 +178,55 @@ class OverlayService : Service() {
 
         val scrollView = ScrollView(this).apply {
             isFillViewport = false
-            addView(root)
+            isVerticalScrollBarEnabled = true
+            addView(listContent)
+        }
+
+        panel.addView(
+            scrollView,
+            LinearLayout.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                0,
+                1f,
+            ),
+        )
+
+        outer.addView(
+            panel,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            ),
+        )
+
+        val desiredX = if (openToRight) {
+            bubbleX
+        } else {
+            bubbleX + bubbleApproxSize - panelWidth
+        }
+
+        val desiredY = if (openDown) {
+            bubbleY
+        } else {
+            bubbleY + bubbleApproxSize - maxPanelHeight
         }
 
         val params = createWindowParams(
-            width = dp(220),
-            height = WindowManager.LayoutParams.WRAP_CONTENT,
+            width = panelWidth,
+            height = maxPanelHeight,
         ).apply {
-            x = positionPreferences.getInt(KEY_X, 24)
-            y = positionPreferences.getInt(KEY_Y, 180)
+            x = desiredX.coerceIn(0, max(0, screenWidth - panelWidth))
+            y = desiredY.coerceIn(0, max(0, screenHeight - maxPanelHeight))
         }
 
         attachDragAndClick(
-            view = header,
+            view = title,
             params = params,
             onClick = { showCollapsedOverlay() },
         )
 
-        overlayView = scrollView
-        windowManager.addView(scrollView, params)
+        overlayView = outer
+        windowManager.addView(outer, params)
     }
 
     private fun createListRow(
@@ -193,13 +275,17 @@ class OverlayService : Service() {
                 MotionEvent.ACTION_MOVE -> {
                     val dx = (event.rawX - initialTouchX).toInt()
                     val dy = (event.rawY - initialTouchY).toInt()
+                    val bounds = currentScreenBounds()
 
                     if (abs(dx) > dp(4) || abs(dy) > dp(4)) {
                         moved = true
                     }
 
-                    params.x = initialX + dx
-                    params.y = initialY + dy
+                    val viewWidth = if (params.width > 0) params.width else dp(64)
+                    val viewHeight = if (params.height > 0) params.height else dp(64)
+
+                    params.x = (initialX + dx).coerceIn(0, max(0, bounds.width() - viewWidth))
+                    params.y = (initialY + dy).coerceIn(0, max(0, bounds.height() - viewHeight))
                     overlayView?.let { windowManager.updateViewLayout(it, params) }
                     true
                 }
@@ -226,13 +312,14 @@ class OverlayService : Service() {
             width,
             height,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.TOP or Gravity.START
         }
     }
+
+    private fun currentScreenBounds() = windowManager.currentWindowMetrics.bounds
 
     private fun copyToClipboard(text: String) {
         val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager

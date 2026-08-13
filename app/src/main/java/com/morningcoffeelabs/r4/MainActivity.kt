@@ -1,5 +1,6 @@
 package com.morningcoffeelabs.r4
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -35,6 +36,7 @@ import java.util.UUID
 
 class MainActivity : ComponentActivity() {
     private var overlayPermissionGranted by mutableStateOf(false)
+    private var overlayRunning by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,8 +49,17 @@ class MainActivity : ComponentActivity() {
                 R4App(
                     repository = repository,
                     overlayPermissionGranted = overlayPermissionGranted,
+                    overlayRunning = overlayRunning,
                     onRequestOverlayPermission = {
                         OverlayPermission.openSettings(this)
+                    },
+                    onStartOverlay = {
+                        startService(Intent(this, OverlayService::class.java))
+                        overlayRunning = true
+                    },
+                    onStopOverlay = {
+                        stopService(Intent(this, OverlayService::class.java))
+                        overlayRunning = false
                     },
                 )
             }
@@ -65,7 +76,10 @@ class MainActivity : ComponentActivity() {
 private fun R4App(
     repository: MessageRepository,
     overlayPermissionGranted: Boolean,
+    overlayRunning: Boolean,
     onRequestOverlayPermission: () -> Unit,
+    onStartOverlay: () -> Unit,
+    onStopOverlay: () -> Unit,
 ) {
     val messages = remember {
         mutableStateListOf<Message>().apply {
@@ -122,7 +136,10 @@ private fun R4App(
         MessageList(
             messages = messages,
             overlayPermissionGranted = overlayPermissionGranted,
+            overlayRunning = overlayRunning,
             onRequestOverlayPermission = onRequestOverlayPermission,
+            onStartOverlay = onStartOverlay,
+            onStopOverlay = onStopOverlay,
             onCreate = { isCreating = true },
             onEdit = { editingMessage = it },
             onDelete = { pendingDelete = it },
@@ -158,7 +175,10 @@ private fun R4App(
 private fun MessageList(
     messages: List<Message>,
     overlayPermissionGranted: Boolean,
+    overlayRunning: Boolean,
     onRequestOverlayPermission: () -> Unit,
+    onStartOverlay: () -> Unit,
+    onStopOverlay: () -> Unit,
     onCreate: () -> Unit,
     onEdit: (Message) -> Unit,
     onDelete: (Message) -> Unit,
@@ -191,7 +211,10 @@ private fun MessageList(
 
             OverlaySetupCard(
                 permissionGranted = overlayPermissionGranted,
+                overlayRunning = overlayRunning,
                 onRequestPermission = onRequestOverlayPermission,
+                onStartOverlay = onStartOverlay,
+                onStopOverlay = onStopOverlay,
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -222,7 +245,10 @@ private fun MessageList(
 @Composable
 private fun OverlaySetupCard(
     permissionGranted: Boolean,
+    overlayRunning: Boolean,
     onRequestPermission: () -> Unit,
+    onStartOverlay: () -> Unit,
+    onStopOverlay: () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -232,18 +258,33 @@ private fun OverlaySetupCard(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                if (permissionGranted) {
-                    "Tillatelse til å vises over andre apper er gitt."
-                } else {
-                    "R4 trenger Android-tillatelsen «Vis over andre apper» før overlayen kan brukes."
+                when {
+                    !permissionGranted -> "R4 trenger Android-tillatelsen «Vis over andre apper» før overlayen kan brukes."
+                    overlayRunning -> "Overlayen er aktiv. R4-boblen skal nå være synlig over andre apper."
+                    else -> "Tillatelsen er gitt. Start overlayen når du vil bruke R4 over andre apper."
                 },
                 style = MaterialTheme.typography.bodyMedium,
             )
 
-            if (!permissionGranted) {
-                Spacer(modifier = Modifier.height(10.dp))
-                OutlinedButton(onClick = onRequestPermission) {
-                    Text("Gi overlay-tillatelse")
+            Spacer(modifier = Modifier.height(10.dp))
+
+            when {
+                !permissionGranted -> {
+                    OutlinedButton(onClick = onRequestPermission) {
+                        Text("Gi overlay-tillatelse")
+                    }
+                }
+
+                overlayRunning -> {
+                    OutlinedButton(onClick = onStopOverlay) {
+                        Text("Stopp overlay")
+                    }
+                }
+
+                else -> {
+                    Button(onClick = onStartOverlay) {
+                        Text("Start overlay")
+                    }
                 }
             }
         }

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">R4</string>
+    <string name="saved_messages_count">Saved messages: %1$d</string>
+    <string name="new_message">New message</string>
+    <string name="no_messages">No messages yet. Create the first one by writing or pasting the text you want to save.</string>
+
+    <string name="choose_apps_title">Choose apps for R4</string>
+    <string name="choose_apps_warning">R4 shows a list of launchable apps on this device so you can choose which apps you want to use with R4.\n\nR4 does not read the content of these apps. Your choices are stored only on this device.</string>
+    <string name="continue_action">Continue</string>
+    <string name="cancel">Cancel</string>
+    <string name="manage_apps">Manage apps</string>
+    <string name="done">Done</string>
+
+    <string name="delete_message_title">Delete message?</string>
+    <string name="delete_message_text">“%1$s” will be permanently deleted from this device.</string>
+    <string name="delete">Delete</string>
+
+    <string name="target_app">Target app:</string>
+    <string name="none_selected">None selected</string>
+    <string name="choose_app">Choose app</string>
+    <string name="remove_target_app">Remove target app</string>
+    <string name="grant_overlay_permission">Grant overlay permission</string>
+    <string name="stop_overlay">Stop overlay</string>
+    <string name="start_overlay">Start overlay</string>
+
+    <string name="back">← Back</string>
+    <string name="settings_info">Settings and info</string>
+    <string name="about_r4_collapsed">About R4 ▼</string>
+    <string name="about_r4_expanded">About R4 ▲</string>
+    <string name="about_r4_text">R4 lets you save text you use often and keep it available in a floating overlay above other apps. Tap a saved message in the overlay to copy the full text to the clipboard, then paste it where you need it. R4 does not alter your text or send anything on your behalf.</string>
+    <string name="app_management_collapsed">App management ▼</string>
+    <string name="app_management_expanded">App management ▲</string>
+    <string name="app_management_text">Choose which apps should appear in the target app drop-down on the main screen.</string>
+    <string name="links">Links</string>
+    <string name="links_placeholder">Placeholder for privacy policy, terms, support and other links required for Google Play publishing.</string>
+    <string name="purchase">Purchase</string>
+    <string name="purchase_placeholder">Purchase functionality will be added later.</string>
+
+    <string name="edit">Edit</string>
+    <string name="edit_message">Edit message</string>
+    <string name="format_preserved">Emoji, line breaks, blank lines and spaces are preserved.</string>
+    <string name="title_label">Title</string>
+    <string name="title_placeholder">🐻 Bear, KvK, Alliance Rules …</string>
+    <string name="text_label">Text</string>
+    <string name="text_placeholder">Write or paste message …</string>
+    <string name="save">Save</string>
+
+    <string name="overlay_no_saved_messages">No saved messages</string>
+    <string name="copied">Copied</string>
+    <string name="clipboard_label">R4 message</string>
+</resources>

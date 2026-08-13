@@ -33,6 +33,7 @@ class OverlayService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        isRunning = true
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         repository = MessageRepository(this)
         showCollapsedOverlay()
@@ -41,6 +42,7 @@ class OverlayService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        isRunning = false
         removeOverlayView()
         super.onDestroy()
     }
@@ -345,6 +347,10 @@ class OverlayService : Service() {
     private fun dp(value: Float): Int = (value * resources.displayMetrics.density).toInt()
 
     companion object {
+        @Volatile
+        var isRunning: Boolean = false
+            private set
+
         private const val PREFS_OVERLAY_POSITION = "r4_overlay_position"
         private const val KEY_X = "x"
         private const val KEY_Y = "y"

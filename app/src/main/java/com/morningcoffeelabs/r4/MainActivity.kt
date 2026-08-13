@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -497,7 +498,9 @@ private fun HomeScreen(
                 )
             }
 
-            item { InfoCard() }
+            item {
+                InfoCard()
+            }
 
             item {
                 CopyrightFooter()
@@ -578,21 +581,13 @@ private fun DarkOverlayCard(
             Spacer(Modifier.size(16.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = if (overlayRunning) {
-                        stringResource(R.string.stop_overlay)
-                    } else {
-                        stringResource(R.string.start_overlay)
-                    },
+                    text = if (overlayRunning) stringResource(R.string.stop_overlay) else stringResource(R.string.start_overlay),
                     color = Color.White,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(Modifier.height(4.dp))
-                Text(
-                    stringResource(R.string.home_overlay_subtitle),
-                    color = R4Muted,
-                    fontSize = 15.sp,
-                )
+                Text(stringResource(R.string.home_overlay_subtitle), color = R4Muted, fontSize = 15.sp)
             }
         }
 
@@ -600,10 +595,7 @@ private fun DarkOverlayCard(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.target_app), color = R4Muted)
             Box {
-                TextButton(
-                    onClick = { dropdownExpanded = true },
-                    enabled = favoriteApps.isNotEmpty(),
-                ) {
+                TextButton(onClick = { dropdownExpanded = true }, enabled = favoriteApps.isNotEmpty()) {
                     val label = when {
                         favoriteApps.isEmpty() -> stringResource(R.string.none_selected)
                         targetAppName == null -> stringResource(R.string.choose_app)
@@ -643,10 +635,13 @@ private fun DarkOverlayCard(
                 text = stringResource(R.string.grant_overlay_permission),
                 onClick = onRequestPermission,
             )
-            overlayRunning -> R4SecondaryButton(
-                text = stringResource(R.string.stop_overlay),
+            overlayRunning -> OutlinedButton(
                 onClick = onStopOverlay,
-            )
+                modifier = Modifier.fillMaxWidth(),
+                border = BorderStroke(1.dp, R4Green),
+            ) {
+                Text(stringResource(R.string.stop_overlay), color = Color.White)
+            }
             else -> R4PrimaryButton(
                 text = stringResource(R.string.start_overlay),
                 onClick = onStartOverlay,
@@ -688,8 +683,8 @@ private fun InfoCard() {
 @Composable
 private fun CopyrightFooter() {
     Text(
-        text = stringResource(R.string.copyright),
-        color = R4Muted.copy(alpha = 0.7f),
+        text = stringResource(R.string.copyright_mcl),
+        color = R4Muted.copy(alpha = 0.72f),
         fontSize = 12.sp,
         textAlign = TextAlign.Center,
         modifier = Modifier.fillMaxWidth(),
@@ -697,7 +692,11 @@ private fun CopyrightFooter() {
 }
 
 @Composable
-private fun DarkMessageCard(message: Message, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun DarkMessageCard(
+    message: Message,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
     val shape = RoundedCornerShape(14.dp)
     Column(
         modifier = Modifier
@@ -719,7 +718,10 @@ private fun DarkMessageCard(message: Message, onEdit: () -> Unit, onDelete: () -
 }
 
 @Composable
-private fun SettingsScreen(onBack: () -> Unit, onManageApps: () -> Unit) {
+private fun SettingsScreen(
+    onBack: () -> Unit,
+    onManageApps: () -> Unit,
+) {
     var descriptionExpanded by remember { mutableStateOf(false) }
     var appManagementExpanded by remember { mutableStateOf(false) }
 
@@ -828,7 +830,7 @@ private fun SettingsExpandableCard(
     title: String,
     expanded: Boolean,
     onToggle: () -> Unit,
-    content: @Composable Column.() -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(18.dp)
     Column(
@@ -863,7 +865,7 @@ private fun SettingsExpandableCard(
 @Composable
 private fun DarkSettingsCard(
     title: String,
-    content: @Composable Column.() -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(18.dp)
     Column(
@@ -888,6 +890,20 @@ private fun MessageEditor(
     var title by remember(existingMessage?.id) { mutableStateOf(existingMessage?.title.orEmpty()) }
     var text by remember(existingMessage?.id) { mutableStateOf(existingMessage?.text.orEmpty()) }
 
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.White,
+        unfocusedTextColor = Color.White,
+        focusedBorderColor = R4Green,
+        unfocusedBorderColor = R4Border,
+        focusedLabelColor = R4Green,
+        unfocusedLabelColor = R4Muted,
+        cursorColor = R4Green,
+        focusedContainerColor = R4Surface,
+        unfocusedContainerColor = R4Surface,
+        focusedPlaceholderColor = R4Muted,
+        unfocusedPlaceholderColor = R4Muted,
+    )
+
     Scaffold(containerColor = R4Background) { innerPadding ->
         Column(
             modifier = Modifier
@@ -896,11 +912,7 @@ private fun MessageEditor(
                 .padding(innerPadding)
                 .padding(horizontal = 20.dp),
         ) {
-            Spacer(Modifier.height(18.dp))
-            TextButton(onClick = onCancel) {
-                Text(stringResource(R.string.back), color = R4Green)
-            }
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(20.dp))
             Text(
                 text = stringResource(
                     if (existingMessage == null) R.string.new_message else R.string.edit_message
@@ -911,47 +923,57 @@ private fun MessageEditor(
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                stringResource(R.string.format_preserved),
+                text = stringResource(R.string.format_preserved),
                 color = R4Muted,
                 fontSize = 14.sp,
             )
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(20.dp))
 
-            DarkOutlinedTextField(
+            OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = stringResource(R.string.title_label),
-                placeholder = stringResource(R.string.title_placeholder),
+                label = { Text(stringResource(R.string.title_label)) },
+                placeholder = { Text(stringResource(R.string.title_placeholder)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = fieldColors,
             )
 
             Spacer(Modifier.height(14.dp))
 
-            DarkOutlinedTextField(
+            OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
-                label = stringResource(R.string.text_label),
-                placeholder = stringResource(R.string.text_placeholder),
-                singleLine = false,
+                label = { Text(stringResource(R.string.text_label)) },
+                placeholder = { Text(stringResource(R.string.text_placeholder)) },
+                minLines = 12,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                monospace = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                    fontFamily = FontFamily.Monospace,
+                    color = Color.White,
+                ),
+                shape = RoundedCornerShape(14.dp),
+                colors = fieldColors,
             )
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(16.dp))
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 18.dp),
+                    .padding(bottom = 20.dp),
             ) {
-                R4SecondaryButton(
-                    text = stringResource(R.string.cancel),
+                OutlinedButton(
                     onClick = onCancel,
                     modifier = Modifier.weight(1f),
-                )
+                    border = BorderStroke(1.dp, R4Border),
+                ) {
+                    Text(stringResource(R.string.cancel), color = Color.White)
+                }
                 Button(
                     onClick = { onSave(title, text) },
                     enabled = title.isNotBlank(),
@@ -971,73 +993,18 @@ private fun MessageEditor(
 }
 
 @Composable
-private fun DarkOutlinedTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    placeholder: String,
-    singleLine: Boolean,
-    modifier: Modifier,
-    monospace: Boolean = false,
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        placeholder = { Text(placeholder) },
-        singleLine = singleLine,
-        modifier = modifier,
-        textStyle = MaterialTheme.typography.bodyLarge.copy(
-            color = Color.White,
-            fontFamily = if (monospace) FontFamily.Monospace else FontFamily.Default,
-        ),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = Color.White,
-            unfocusedTextColor = Color.White,
-            focusedBorderColor = R4Green,
-            unfocusedBorderColor = R4Border,
-            focusedLabelColor = R4Green,
-            unfocusedLabelColor = R4Muted,
-            cursorColor = R4Green,
-            focusedContainerColor = R4Surface,
-            unfocusedContainerColor = R4Surface,
-            focusedPlaceholderColor = R4Muted.copy(alpha = 0.7f),
-            unfocusedPlaceholderColor = R4Muted.copy(alpha = 0.7f),
-        ),
-        shape = RoundedCornerShape(16.dp),
-    )
-}
-
-@Composable
 private fun R4PrimaryButton(
     text: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier.fillMaxWidth(),
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier,
+        modifier = Modifier.fillMaxWidth(),
         colors = ButtonDefaults.buttonColors(
             containerColor = R4Green,
             contentColor = Color.Black,
         ),
     ) {
         Text(text, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-private fun R4SecondaryButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier.fillMaxWidth(),
-) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier,
-        border = BorderStroke(1.dp, R4Border),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-    ) {
-        Text(text)
     }
 }

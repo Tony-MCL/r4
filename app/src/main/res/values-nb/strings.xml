@@ -7,11 +7,15 @@
     <string name="welcome_title">Velkommen til R4</string>
     <string name="welcome_subtitle">Din flytende tekstsamling for raske meldinger</string>
     <string name="new_message_subtitle">Opprett en ny melding</string>
+    <string name="home_new_message_subtitle">Opprett en ny melding</string>
     <string name="my_messages">Mine meldinger</string>
     <string name="my_messages_subtitle">Administrer dine meldinger</string>
+    <string name="home_my_messages_subtitle">Administrer dine meldinger (%1$d)</string>
     <string name="start_overlay_subtitle">Aktiver flytende overlay</string>
     <string name="stop_overlay_subtitle">Deaktiver flytende overlay</string>
+    <string name="home_overlay_subtitle">Aktiver eller deaktiver flytende overlay</string>
     <string name="how_r4_works">Slik fungerer R4</string>
+    <string name="how_r4_works_title">Slik fungerer R4</string>
     <string name="how_r4_works_text">Opprett meldinger, aktiver overlay, trykk på en tittel for å kopiere teksten, og lim inn i appen du bruker.</string>
 
     <string name="choose_apps_title">Velg apper for R4</string>

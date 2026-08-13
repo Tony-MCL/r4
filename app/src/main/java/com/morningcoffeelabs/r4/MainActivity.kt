@@ -5,6 +5,7 @@ import android.content.pm.ResolveInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,13 +25,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -111,7 +114,10 @@ class MainActivity : ComponentActivity() {
                         refreshTargetApps()
                     },
                     onSelectTargetApp = { app ->
-                        targetPreferences.edit().putString("package_name", app.packageName).putString("label", app.label).apply()
+                        targetPreferences.edit()
+                            .putString("package_name", app.packageName)
+                            .putString("label", app.label)
+                            .apply()
                         targetAppName = app.label
                     },
                     onClearTargetApp = {
@@ -143,17 +149,26 @@ class MainActivity : ComponentActivity() {
         val launcherIntent = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
         return packageManager.queryIntentActivities(launcherIntent, 0)
             .filter { it.activityInfo.packageName != packageName }
-            .map { resolveInfo: ResolveInfo -> TargetApp(resolveInfo.loadLabel(packageManager).toString(), resolveInfo.activityInfo.packageName) }
+            .map { resolveInfo: ResolveInfo ->
+                TargetApp(
+                    resolveInfo.loadLabel(packageManager).toString(),
+                    resolveInfo.activityInfo.packageName,
+                )
+            }
             .distinctBy { it.packageName }
             .sortedBy { it.label.lowercase() }
     }
 
     private fun setFavorite(app: TargetApp, enabled: Boolean) {
-        val favorites = targetPreferences.getStringSet("favorite_packages", emptySet())?.toMutableSet() ?: mutableSetOf()
+        val favorites = targetPreferences
+            .getStringSet("favorite_packages", emptySet())
+            ?.toMutableSet() ?: mutableSetOf()
         if (enabled) favorites.add(app.packageName) else favorites.remove(app.packageName)
         targetPreferences.edit().putStringSet("favorite_packages", favorites).apply()
 
-        val labels = targetPreferences.getStringSet("favorite_labels", emptySet())?.toMutableSet() ?: mutableSetOf()
+        val labels = targetPreferences
+            .getStringSet("favorite_labels", emptySet())
+            ?.toMutableSet() ?: mutableSetOf()
         labels.removeAll { it.substringAfter('|', "") == app.packageName }
         if (enabled) labels.add("${app.label}|${app.packageName}")
         targetPreferences.edit().putStringSet("favorite_labels", labels).apply()
@@ -165,10 +180,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun refreshTargetApps() {
-        favoriteApps = targetPreferences.getStringSet("favorite_labels", emptySet()).orEmpty().mapNotNull { entry ->
-            val split = entry.split('|', limit = 2)
-            if (split.size == 2) TargetApp(split[0], split[1]) else null
-        }.sortedBy { it.label.lowercase() }
+        favoriteApps = targetPreferences
+            .getStringSet("favorite_labels", emptySet())
+            .orEmpty()
+            .mapNotNull { entry ->
+                val split = entry.split('|', limit = 2)
+                if (split.size == 2) TargetApp(split[0], split[1]) else null
+            }
+            .sortedBy { it.label.lowercase() }
         targetAppName = targetPreferences.getString("label", null)
     }
 
@@ -208,6 +227,7 @@ private fun R4App(
     var editingMessage by remember { mutableStateOf<Message?>(null) }
     var isCreating by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<Message?>(null) }
+
     fun persist() = repository.saveMessages(messages.toList())
 
     if (showSettings) {
@@ -215,16 +235,24 @@ private fun R4App(
     } else if (isCreating || editingMessage != null) {
         MessageEditor(
             existingMessage = editingMessage,
-            onCancel = { isCreating = false; editingMessage = null },
+            onCancel = {
+                isCreating = false
+                editingMessage = null
+            },
             onSave = { title, text ->
                 val now = System.currentTimeMillis()
                 val existing = editingMessage
-                if (existing == null) messages.add(Message(UUID.randomUUID().toString(), title, text, now, now))
-                else {
+                if (existing == null) {
+                    messages.add(Message(UUID.randomUUID().toString(), title, text, now, now))
+                } else {
                     val index = messages.indexOfFirst { it.id == existing.id }
-                    if (index >= 0) messages[index] = existing.copy(title = title, text = text, updatedAt = now)
+                    if (index >= 0) {
+                        messages[index] = existing.copy(title = title, text = text, updatedAt = now)
+                    }
                 }
-                persist(); isCreating = false; editingMessage = null
+                persist()
+                isCreating = false
+                editingMessage = null
             },
         )
     } else {
@@ -247,12 +275,14 @@ private fun R4App(
     }
 
     if (showManageAppsWarning) {
-        AlertDialog(
+        DarkAlertDialog(
             onDismissRequest = onCancelManageAppsWarning,
-            title = { Text(stringResource(R.string.choose_apps_title)) },
-            text = { Text(stringResource(R.string.choose_apps_warning)) },
-            confirmButton = { Button(onClick = onContinueManageApps) { Text(stringResource(R.string.continue_action)) } },
-            dismissButton = { TextButton(onClick = onCancelManageAppsWarning) { Text(stringResource(R.string.cancel)) } },
+            title = stringResource(R.string.choose_apps_title),
+            text = stringResource(R.string.choose_apps_warning),
+            confirmText = stringResource(R.string.continue_action),
+            dismissText = stringResource(R.string.cancel),
+            onConfirm = onContinueManageApps,
+            onDismiss = onCancelManageAppsWarning,
         )
     }
 
@@ -260,37 +290,92 @@ private fun R4App(
         val favoritePackages = favoriteApps.map { it.packageName }.toSet()
         AlertDialog(
             onDismissRequest = onDismissManageApps,
-            title = { Text(stringResource(R.string.manage_apps)) },
+            containerColor = R4Surface,
+            titleContentColor = Color.White,
+            textContentColor = R4Muted,
+            title = { Text(stringResource(R.string.manage_apps), fontWeight = FontWeight.Bold) },
             text = {
                 LazyColumn(modifier = Modifier.fillMaxWidth()) {
                     items(allTargetApps, key = { it.packageName }) { app ->
-                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             Checkbox(
                                 checked = app.packageName in favoritePackages,
                                 onCheckedChange = { enabled -> onFavoriteToggled(app, enabled) },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = R4Green,
+                                    checkmarkColor = Color.Black,
+                                    uncheckedColor = R4Muted,
+                                ),
                             )
-                            Text(app.label)
+                            Text(app.label, color = Color.White)
                         }
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = onDismissManageApps) { Text(stringResource(R.string.done)) } },
+            confirmButton = {
+                TextButton(onClick = onDismissManageApps) {
+                    Text(stringResource(R.string.done), color = R4Green)
+                }
+            },
         )
     }
 
     pendingDelete?.let { message ->
-        AlertDialog(
+        DarkAlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text(stringResource(R.string.delete_message_title)) },
-            text = { Text(stringResource(R.string.delete_message_text, message.title)) },
-            confirmButton = {
-                TextButton(onClick = { messages.removeAll { it.id == message.id }; persist(); pendingDelete = null }) {
-                    Text(stringResource(R.string.delete))
-                }
+            title = stringResource(R.string.delete_message_title),
+            text = stringResource(R.string.delete_message_text, message.title),
+            confirmText = stringResource(R.string.delete),
+            dismissText = stringResource(R.string.cancel),
+            onConfirm = {
+                messages.removeAll { it.id == message.id }
+                persist()
+                pendingDelete = null
             },
-            dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text(stringResource(R.string.cancel)) } },
+            onDismiss = { pendingDelete = null },
         )
     }
+}
+
+@Composable
+private fun DarkAlertDialog(
+    onDismissRequest: () -> Unit,
+    title: String,
+    text: String,
+    confirmText: String,
+    dismissText: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        containerColor = R4Surface,
+        titleContentColor = Color.White,
+        textContentColor = R4Muted,
+        title = { Text(title, fontWeight = FontWeight.Bold) },
+        text = { Text(text) },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = R4Green,
+                    contentColor = Color.Black,
+                ),
+            ) {
+                Text(confirmText)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(dismissText, color = R4Muted)
+            }
+        },
+    )
 }
 
 @Composable
@@ -412,8 +497,10 @@ private fun HomeScreen(
                 )
             }
 
+            item { InfoCard() }
+
             item {
-                InfoCard()
+                CopyrightFooter()
                 Spacer(Modifier.height(24.dp))
             }
         }
@@ -421,7 +508,12 @@ private fun HomeScreen(
 }
 
 @Composable
-private fun HomeActionCard(iconText: String, title: String, subtitle: String, onClick: () -> Unit) {
+private fun HomeActionCard(
+    iconText: String,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+) {
     val shape = RoundedCornerShape(18.dp)
     Row(
         modifier = Modifier
@@ -486,13 +578,21 @@ private fun DarkOverlayCard(
             Spacer(Modifier.size(16.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = if (overlayRunning) stringResource(R.string.stop_overlay) else stringResource(R.string.start_overlay),
+                    text = if (overlayRunning) {
+                        stringResource(R.string.stop_overlay)
+                    } else {
+                        stringResource(R.string.start_overlay)
+                    },
                     color = Color.White,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(Modifier.height(4.dp))
-                Text(stringResource(R.string.home_overlay_subtitle), color = R4Muted, fontSize = 15.sp)
+                Text(
+                    stringResource(R.string.home_overlay_subtitle),
+                    color = R4Muted,
+                    fontSize = 15.sp,
+                )
             }
         }
 
@@ -500,18 +600,28 @@ private fun DarkOverlayCard(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.target_app), color = R4Muted)
             Box {
-                TextButton(onClick = { dropdownExpanded = true }, enabled = favoriteApps.isNotEmpty()) {
+                TextButton(
+                    onClick = { dropdownExpanded = true },
+                    enabled = favoriteApps.isNotEmpty(),
+                ) {
                     val label = when {
                         favoriteApps.isEmpty() -> stringResource(R.string.none_selected)
                         targetAppName == null -> stringResource(R.string.choose_app)
                         else -> targetAppName
                     }
-                    Text(if (favoriteApps.isEmpty()) label else "$label ▼", color = if (favoriteApps.isEmpty()) R4Muted else R4Green)
+                    Text(
+                        if (favoriteApps.isEmpty()) label else "$label ▼",
+                        color = if (favoriteApps.isEmpty()) R4Muted else R4Green,
+                    )
                 }
-                DropdownMenu(expanded = dropdownExpanded, onDismissRequest = { dropdownExpanded = false }) {
+                DropdownMenu(
+                    expanded = dropdownExpanded,
+                    onDismissRequest = { dropdownExpanded = false },
+                    containerColor = R4Surface,
+                ) {
                     favoriteApps.forEach { app ->
                         DropdownMenuItem(
-                            text = { Text(app.label) },
+                            text = { Text(app.label, color = Color.White) },
                             onClick = {
                                 onSelectTargetApp(app)
                                 dropdownExpanded = false
@@ -529,15 +639,18 @@ private fun DarkOverlayCard(
         }
 
         when {
-            !permissionGranted -> Button(onClick = onRequestPermission, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.grant_overlay_permission))
-            }
-            overlayRunning -> OutlinedButton(onClick = onStopOverlay, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.stop_overlay), color = Color.White)
-            }
-            else -> Button(onClick = onStartOverlay, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.start_overlay))
-            }
+            !permissionGranted -> R4PrimaryButton(
+                text = stringResource(R.string.grant_overlay_permission),
+                onClick = onRequestPermission,
+            )
+            overlayRunning -> R4SecondaryButton(
+                text = stringResource(R.string.stop_overlay),
+                onClick = onStopOverlay,
+            )
+            else -> R4PrimaryButton(
+                text = stringResource(R.string.start_overlay),
+                onClick = onStartOverlay,
+            )
         }
     }
 }
@@ -573,6 +686,17 @@ private fun InfoCard() {
 }
 
 @Composable
+private fun CopyrightFooter() {
+    Text(
+        text = stringResource(R.string.copyright),
+        color = R4Muted.copy(alpha = 0.7f),
+        fontSize = 12.sp,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+@Composable
 private fun DarkMessageCard(message: Message, onEdit: () -> Unit, onDelete: () -> Unit) {
     val shape = RoundedCornerShape(14.dp)
     Column(
@@ -584,8 +708,12 @@ private fun DarkMessageCard(message: Message, onEdit: () -> Unit, onDelete: () -
     ) {
         Text(message.title, color = Color.White, fontWeight = FontWeight.Bold)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = onEdit) { Text(stringResource(R.string.edit), color = R4Green) }
-            TextButton(onClick = onDelete) { Text(stringResource(R.string.delete), color = R4Muted) }
+            TextButton(onClick = onEdit) {
+                Text(stringResource(R.string.edit), color = R4Green)
+            }
+            TextButton(onClick = onDelete) {
+                Text(stringResource(R.string.delete), color = R4Muted)
+            }
         }
     }
 }
@@ -594,47 +722,248 @@ private fun DarkMessageCard(message: Message, onEdit: () -> Unit, onDelete: () -
 private fun SettingsScreen(onBack: () -> Unit, onManageApps: () -> Unit) {
     var descriptionExpanded by remember { mutableStateOf(false) }
     var appManagementExpanded by remember { mutableStateOf(false) }
-    Scaffold(topBar = {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
-            Text(stringResource(R.string.settings_info), style = MaterialTheme.typography.titleLarge)
+
+    Scaffold(containerColor = R4Background) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(R4Background)
+                .padding(innerPadding)
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            item {
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(onClick = onBack) {
+                        Text(stringResource(R.string.back), color = R4Green)
+                    }
+                    Spacer(Modifier.weight(1f))
+                }
+                Text(
+                    text = stringResource(R.string.settings_info),
+                    color = Color.White,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.height(6.dp))
+            }
+
+            item {
+                SettingsExpandableCard(
+                    title = stringResource(
+                        if (descriptionExpanded) R.string.about_r4_expanded
+                        else R.string.about_r4_collapsed
+                    ),
+                    expanded = descriptionExpanded,
+                    onToggle = { descriptionExpanded = !descriptionExpanded },
+                ) {
+                    Text(
+                        stringResource(R.string.about_r4_text),
+                        color = R4Muted,
+                        fontSize = 15.sp,
+                    )
+                }
+            }
+
+            item {
+                SettingsExpandableCard(
+                    title = stringResource(
+                        if (appManagementExpanded) R.string.app_management_expanded
+                        else R.string.app_management_collapsed
+                    ),
+                    expanded = appManagementExpanded,
+                    onToggle = { appManagementExpanded = !appManagementExpanded },
+                ) {
+                    Text(
+                        stringResource(R.string.app_management_text),
+                        color = R4Muted,
+                        fontSize = 15.sp,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    R4PrimaryButton(
+                        text = stringResource(R.string.manage_apps),
+                        onClick = onManageApps,
+                    )
+                }
+            }
+
+            item {
+                DarkSettingsCard(title = stringResource(R.string.links)) {
+                    Text(stringResource(R.string.links_placeholder), color = R4Muted)
+                }
+            }
+
+            item {
+                DarkSettingsCard(title = stringResource(R.string.purchase)) {
+                    Text(stringResource(R.string.purchase_placeholder), color = R4Muted)
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = {},
+                        enabled = false,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            disabledContainerColor = R4Border,
+                            disabledContentColor = R4Muted,
+                        ),
+                    ) {
+                        Text(stringResource(R.string.purchase))
+                    }
+                }
+            }
+
+            item {
+                CopyrightFooter()
+                Spacer(Modifier.height(24.dp))
+            }
         }
-    }) { innerPadding ->
-        Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    TextButton(onClick = { descriptionExpanded = !descriptionExpanded }) {
-                        Text(stringResource(if (descriptionExpanded) R.string.about_r4_expanded else R.string.about_r4_collapsed))
-                    }
-                    if (descriptionExpanded) Text(stringResource(R.string.about_r4_text), style = MaterialTheme.typography.bodyMedium)
-                }
+    }
+}
+
+@Composable
+private fun SettingsExpandableCard(
+    title: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    content: @Composable Column.() -> Unit,
+) {
+    val shape = RoundedCornerShape(18.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, R4Border, shape)
+            .background(R4Surface, shape)
+            .padding(16.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onToggle),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                title,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                modifier = Modifier.weight(1f),
+            )
+            Text(if (expanded) "▲" else "▼", color = R4Green)
+        }
+        if (expanded) {
+            Spacer(Modifier.height(12.dp))
+            content()
+        }
+    }
+}
+
+@Composable
+private fun DarkSettingsCard(
+    title: String,
+    content: @Composable Column.() -> Unit,
+) {
+    val shape = RoundedCornerShape(18.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, R4Border, shape)
+            .background(R4Surface, shape)
+            .padding(16.dp),
+    ) {
+        Text(title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Spacer(Modifier.height(10.dp))
+        content()
+    }
+}
+
+@Composable
+private fun MessageEditor(
+    existingMessage: Message?,
+    onCancel: () -> Unit,
+    onSave: (String, String) -> Unit,
+) {
+    var title by remember(existingMessage?.id) { mutableStateOf(existingMessage?.title.orEmpty()) }
+    var text by remember(existingMessage?.id) { mutableStateOf(existingMessage?.text.orEmpty()) }
+
+    Scaffold(containerColor = R4Background) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(R4Background)
+                .padding(innerPadding)
+                .padding(horizontal = 20.dp),
+        ) {
+            Spacer(Modifier.height(18.dp))
+            TextButton(onClick = onCancel) {
+                Text(stringResource(R.string.back), color = R4Green)
             }
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    TextButton(onClick = { appManagementExpanded = !appManagementExpanded }) {
-                        Text(stringResource(if (appManagementExpanded) R.string.app_management_expanded else R.string.app_management_collapsed))
-                    }
-                    if (appManagementExpanded) {
-                        Text(stringResource(R.string.app_management_text), style = MaterialTheme.typography.bodyMedium)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = onManageApps) { Text(stringResource(R.string.manage_apps)) }
-                    }
-                }
-            }
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(stringResource(R.string.links), style = MaterialTheme.typography.titleMedium)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(stringResource(R.string.links_placeholder))
-                }
-            }
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(stringResource(R.string.purchase), style = MaterialTheme.typography.titleMedium)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(stringResource(R.string.purchase_placeholder))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = {}, enabled = false) { Text(stringResource(R.string.purchase)) }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = stringResource(
+                    if (existingMessage == null) R.string.new_message else R.string.edit_message
+                ),
+                color = Color.White,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                stringResource(R.string.format_preserved),
+                color = R4Muted,
+                fontSize = 14.sp,
+            )
+            Spacer(Modifier.height(18.dp))
+
+            DarkOutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = stringResource(R.string.title_label),
+                placeholder = stringResource(R.string.title_placeholder),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(Modifier.height(14.dp))
+
+            DarkOutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                label = stringResource(R.string.text_label),
+                placeholder = stringResource(R.string.text_placeholder),
+                singleLine = false,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                monospace = true,
+            )
+
+            Spacer(Modifier.height(14.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 18.dp),
+            ) {
+                R4SecondaryButton(
+                    text = stringResource(R.string.cancel),
+                    onClick = onCancel,
+                    modifier = Modifier.weight(1f),
+                )
+                Button(
+                    onClick = { onSave(title, text) },
+                    enabled = title.isNotBlank(),
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = R4Green,
+                        contentColor = Color.Black,
+                        disabledContainerColor = R4Border,
+                        disabledContentColor = R4Muted,
+                    ),
+                ) {
+                    Text(stringResource(R.string.save), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -642,24 +971,73 @@ private fun SettingsScreen(onBack: () -> Unit, onManageApps: () -> Unit) {
 }
 
 @Composable
-private fun MessageEditor(existingMessage: Message?, onCancel: () -> Unit, onSave: (String, String) -> Unit) {
-    var title by remember(existingMessage?.id) { mutableStateOf(existingMessage?.title.orEmpty()) }
-    var text by remember(existingMessage?.id) { mutableStateOf(existingMessage?.text.orEmpty()) }
-    Scaffold(topBar = {
-        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
-            Text(stringResource(if (existingMessage == null) R.string.new_message else R.string.edit_message), style = MaterialTheme.typography.headlineSmall)
-            Text(stringResource(R.string.format_preserved), style = MaterialTheme.typography.bodySmall)
-        }
-    }) { innerPadding ->
-        Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 16.dp)) {
-            OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text(stringResource(R.string.title_label)) }, placeholder = { Text(stringResource(R.string.title_placeholder)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(value = text, onValueChange = { text = it }, label = { Text(stringResource(R.string.text_label)) }, placeholder = { Text(stringResource(R.string.text_placeholder)) }, minLines = 12, modifier = Modifier.fillMaxWidth().weight(1f), textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace))
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
-                OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.cancel)) }
-                Button(onClick = { onSave(title, text) }, enabled = title.isNotBlank(), modifier = Modifier.weight(1f)) { Text(stringResource(R.string.save)) }
-            }
-        }
+private fun DarkOutlinedTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String,
+    singleLine: Boolean,
+    modifier: Modifier,
+    monospace: Boolean = false,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        placeholder = { Text(placeholder) },
+        singleLine = singleLine,
+        modifier = modifier,
+        textStyle = MaterialTheme.typography.bodyLarge.copy(
+            color = Color.White,
+            fontFamily = if (monospace) FontFamily.Monospace else FontFamily.Default,
+        ),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = Color.White,
+            unfocusedTextColor = Color.White,
+            focusedBorderColor = R4Green,
+            unfocusedBorderColor = R4Border,
+            focusedLabelColor = R4Green,
+            unfocusedLabelColor = R4Muted,
+            cursorColor = R4Green,
+            focusedContainerColor = R4Surface,
+            unfocusedContainerColor = R4Surface,
+            focusedPlaceholderColor = R4Muted.copy(alpha = 0.7f),
+            unfocusedPlaceholderColor = R4Muted.copy(alpha = 0.7f),
+        ),
+        shape = RoundedCornerShape(16.dp),
+    )
+}
+
+@Composable
+private fun R4PrimaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier.fillMaxWidth(),
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = R4Green,
+            contentColor = Color.Black,
+        ),
+    ) {
+        Text(text, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun R4SecondaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier.fillMaxWidth(),
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier,
+        border = BorderStroke(1.dp, R4Border),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+    ) {
+        Text(text)
     }
 }

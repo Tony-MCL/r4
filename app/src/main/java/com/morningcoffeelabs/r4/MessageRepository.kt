@@ -9,22 +9,28 @@ class MessageRepository(context: Context) {
 
     fun loadMessages(): List<Message> {
         val raw = preferences.getString(KEY_MESSAGES, null) ?: return emptyList()
-        val array = JSONArray(raw)
 
-        return buildList {
-            for (index in 0 until array.length()) {
-                val item = array.getJSONObject(index)
-                add(
-                    Message(
-                        id = item.getString("id"),
-                        title = item.getString("title"),
-                        text = item.getString("text"),
-                        createdAt = item.getLong("createdAt"),
-                        updatedAt = item.getLong("updatedAt"),
-                    )
-                )
+        return runCatching {
+            val array = JSONArray(raw)
+            buildList {
+                for (index in 0 until array.length()) {
+                    val item = array.optJSONObject(index) ?: continue
+                    val message = runCatching {
+                        Message(
+                            id = item.getString("id"),
+                            title = item.getString("title"),
+                            text = item.getString("text"),
+                            createdAt = item.getLong("createdAt"),
+                            updatedAt = item.getLong("updatedAt"),
+                        )
+                    }.getOrNull()
+
+                    if (message != null) {
+                        add(message)
+                    }
+                }
             }
-        }
+        }.getOrDefault(emptyList())
     }
 
     fun saveMessages(messages: List<Message>) {

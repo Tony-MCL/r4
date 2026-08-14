@@ -230,8 +230,20 @@ private fun R4App(
     var editingMessage by remember { mutableStateOf<Message?>(null) }
     var isCreating by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<Message?>(null) }
+    val context = LocalContext.current
+    val introPreferences = remember(context) {
+        context.getSharedPreferences("r4_first_run", 0)
+    }
+    var showFirstRunIntro by remember {
+        mutableStateOf(!introPreferences.getBoolean("intro_shown", false))
+    }
 
     fun persist() = repository.saveMessages(messages.toList())
+
+    fun dismissFirstRunIntro() {
+        introPreferences.edit().putBoolean("intro_shown", true).apply()
+        showFirstRunIntro = false
+    }
 
     if (showSettings) {
         SettingsScreen(onBack = onCloseSettings, onManageApps = onManageApps)
@@ -274,6 +286,33 @@ private fun R4App(
             onCreate = { isCreating = true },
             onEdit = { editingMessage = it },
             onDelete = { pendingDelete = it },
+        )
+    }
+
+    if (showFirstRunIntro) {
+        AlertDialog(
+            onDismissRequest = { dismissFirstRunIntro() },
+            containerColor = R4Surface,
+            titleContentColor = Color.White,
+            textContentColor = R4Muted,
+            title = {
+                Text(
+                    text = stringResource(R.string.first_run_title),
+                    fontWeight = FontWeight.Bold,
+                )
+            },
+            text = { Text(stringResource(R.string.first_run_text)) },
+            confirmButton = {
+                Button(
+                    onClick = { dismissFirstRunIntro() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = R4Green,
+                        contentColor = Color.Black,
+                    ),
+                ) {
+                    Text(stringResource(R.string.got_it), fontWeight = FontWeight.Bold)
+                }
+            },
         )
     }
 
@@ -501,8 +540,6 @@ private fun HomeScreen(
             }
 
             item {
-                InfoCard()
-                Spacer(Modifier.height(10.dp))
                 CopyrightFooter()
                 Spacer(Modifier.height(24.dp))
             }
@@ -681,36 +718,6 @@ private fun R4SecondaryButton(text: String, onClick: () -> Unit, modifier: Modif
 }
 
 @Composable
-private fun InfoCard() {
-    val shape = RoundedCornerShape(18.dp)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, R4Border, shape)
-            .background(R4Surface, shape)
-            .padding(18.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Text("💡", fontSize = 26.sp)
-        Spacer(Modifier.size(14.dp))
-        Column {
-            Text(
-                text = stringResource(R.string.how_r4_works_title),
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = stringResource(R.string.how_r4_works_text),
-                color = R4Muted,
-                fontSize = 15.sp,
-            )
-        }
-    }
-}
-
-@Composable
 private fun CopyrightFooter() {
     Text(
         text = stringResource(R.string.copyright_mcl),
@@ -754,6 +761,12 @@ private fun SettingsScreen(
 
     fun openUrl(url: String) {
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    }
+
+    fun openEmail() {
+        context.startActivity(
+            Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:post@morningcoffeelabs.no"))
+        )
     }
 
     Scaffold(containerColor = R4Background) { innerPadding ->
@@ -844,6 +857,16 @@ private fun SettingsScreen(
                     ) {
                         Row(modifier = Modifier.fillMaxWidth()) {
                             Text(stringResource(R.string.terms_of_use), color = R4Green)
+                            Spacer(Modifier.weight(1f))
+                            Text("›", color = R4Green)
+                        }
+                    }
+                    TextButton(
+                        onClick = { openEmail() },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Text(stringResource(R.string.contact), color = R4Green)
                             Spacer(Modifier.weight(1f))
                             Text("›", color = R4Green)
                         }

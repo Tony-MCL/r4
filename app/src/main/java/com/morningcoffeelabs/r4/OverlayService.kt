@@ -120,13 +120,8 @@ class OverlayService : Service() {
                         title = message.title,
                         enabled = true,
                         onClick = {
-                            val verified = copyToClipboard(message.text)
-                            val toastText = if (verified) {
-                                getString(R.string.copied)
-                            } else {
-                                "Clipboard verification failed"
-                            }
-                            Toast.makeText(this, toastText, Toast.LENGTH_SHORT).show()
+                            copyToClipboard(message.text)
+                            Toast.makeText(this, getString(R.string.copied), Toast.LENGTH_SHORT).show()
                             showCollapsedOverlay()
                         },
                     )
@@ -217,14 +212,17 @@ class OverlayService : Service() {
         }
 
         val paste = createActionButton(getString(R.string.overlay_paste)) {
-            val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-            val item = clipboard.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)
-            val pasted = item?.coerceToText(this)?.toString()
-            if (pasted.isNullOrEmpty()) {
-                Toast.makeText(this, getString(R.string.overlay_no_clipboard_text), Toast.LENGTH_SHORT).show()
-            } else {
-                textInput.setText(pasted)
+            textInput.requestFocus()
+            textInput.post {
                 textInput.setSelection(textInput.text.length)
+                val pasted = textInput.onTextContextMenuItem(android.R.id.paste)
+                if (!pasted) {
+                    Toast.makeText(
+                        this,
+                        getString(R.string.overlay_no_clipboard_text),
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
             }
         }
 
@@ -557,19 +555,11 @@ class OverlayService : Service() {
 
     private fun currentScreenBounds() = windowManager.currentWindowMetrics.bounds
 
-    private fun copyToClipboard(text: String): Boolean {
+    private fun copyToClipboard(text: String) {
         val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(
             ClipData.newPlainText(getString(R.string.clipboard_label), text)
         )
-
-        val current = clipboard.primaryClip
-            ?.takeIf { it.itemCount > 0 }
-            ?.getItemAt(0)
-            ?.coerceToText(this)
-            ?.toString()
-
-        return current == text
     }
 
     private fun removeOverlayView() {

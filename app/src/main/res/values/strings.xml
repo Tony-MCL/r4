@@ -17,6 +17,9 @@
     <string name="how_r4_works">How R4 works</string>
     <string name="how_r4_works_title">How R4 works</string>
     <string name="how_r4_works_text">Create messages, activate the overlay, tap a title to copy the text, and paste it into the app you are using.</string>
+    <string name="first_run_title">How R4 works</string>
+    <string name="first_run_text">Save the messages you use often, choose a target app and start the overlay. Tap a message title in the overlay to copy the full text, then paste it where you need it. You can also create new messages directly from the overlay with + New, including pasting text from the clipboard.</string>
+    <string name="got_it">Got it</string>
     <string name="copyright_mcl">(c) 2026 Morning Coffee Labs</string>
 
     <string name="choose_apps_title">Choose apps for R4</string>
@@ -42,14 +45,15 @@
     <string name="settings_info">Settings and info</string>
     <string name="about_r4_collapsed">About R4 ▼</string>
     <string name="about_r4_expanded">About R4 ▲</string>
-    <string name="about_r4_text">R4 lets you save text you use often and keep it available in a floating overlay above other apps. Tap a saved message in the overlay to copy the full text to the clipboard, then paste it where you need it. R4 does not alter your text or send anything on your behalf.</string>
+    <string name="about_r4_text">R4 is a local message archive designed to keep frequently used text immediately available while you stay in another app. Create and manage messages in R4, choose a target app and start the floating overlay. Tap a saved message in the overlay to copy its full text to the clipboard, then paste it where you need it. You can also create a new message directly from the overlay by pasting text from the clipboard and giving it a title. R4 preserves emoji, line breaks, blank lines and spaces, does not alter your text, and does not send anything on your behalf.</string>
     <string name="app_management_collapsed">App management ▼</string>
     <string name="app_management_expanded">App management ▲</string>
     <string name="app_management_text">Choose which apps should appear in the target app drop-down on the main screen.</string>
     <string name="links">Links</string>
     <string name="privacy_policy">Privacy policy</string>
     <string name="terms_of_use">Terms of use</string>
-    <string name="links_placeholder">Privacy and terms for R4.</string>
+    <string name="contact">Contact</string>
+    <string name="links_placeholder">Privacy, terms and contact for R4.</string>
     <string name="purchase">Purchase</string>
     <string name="purchase_placeholder">Purchase functionality will be added later.</string>
 
@@ -62,13 +66,6 @@
     <string name="text_placeholder">Write or paste message …</string>
     <string name="save">Save</string>
 
-    <string name="overlay_messages_tab">Messages</string>
-    <string name="overlay_new_tab">+ New</string>
-    <string name="overlay_new_message_title">New message</string>
-    <string name="overlay_paste">Paste</string>
-    <string name="overlay_saved">Saved</string>
-    <string name="overlay_title_required">Add a title first</string>
-    <string name="overlay_no_clipboard_text">Clipboard has no text</string>
     <string name="overlay_no_saved_messages">No saved messages</string>
     <string name="copied">Copied</string>
     <string name="clipboard_label">R4 message</string>

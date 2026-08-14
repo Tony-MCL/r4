@@ -47,7 +47,9 @@
     <string name="app_management_expanded">App management ▲</string>
     <string name="app_management_text">Choose which apps should appear in the target app drop-down on the main screen.</string>
     <string name="links">Links</string>
-    <string name="links_placeholder">Placeholder for privacy policy, terms, support and other links required for Google Play publishing.</string>
+    <string name="privacy_policy">Privacy policy</string>
+    <string name="terms_of_use">Terms of use</string>
+    <string name="links_placeholder">Privacy and terms for R4.</string>
     <string name="purchase">Purchase</string>
     <string name="purchase_placeholder">Purchase functionality will be added later.</string>
 

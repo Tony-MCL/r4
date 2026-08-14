@@ -17,6 +17,9 @@
     <string name="how_r4_works">Slik fungerer R4</string>
     <string name="how_r4_works_title">Slik fungerer R4</string>
     <string name="how_r4_works_text">Opprett meldinger, aktiver overlay, trykk på en tittel for å kopiere teksten, og lim inn i appen du bruker.</string>
+    <string name="first_run_title">Slik fungerer R4</string>
+    <string name="first_run_text">Lagre meldingene du bruker ofte, velg en målapp og start overlayen. Trykk på en meldingstittel i overlayen for å kopiere hele teksten, og lim den inn der du trenger den. Du kan også opprette nye meldinger direkte fra overlayen med + Ny, blant annet ved å lime inn tekst fra utklippstavlen.</string>
+    <string name="got_it">Skjønner</string>
     <string name="copyright_mcl">(c) 2026 Morning Coffee Labs</string>
 
     <string name="choose_apps_title">Velg apper for R4</string>
@@ -39,14 +42,15 @@
     <string name="settings_info">Innstillinger og info</string>
     <string name="about_r4_collapsed">Om R4 ▼</string>
     <string name="about_r4_expanded">Om R4 ▲</string>
-    <string name="about_r4_text">R4 lar deg lagre tekstene du bruker ofte og ha dem tilgjengelig i en flytende overlay over andre apper. Trykk på en lagret melding i overlayen for å kopiere hele teksten til utklippstavlen, og lim den inn der du trenger den. R4 endrer ikke teksten din og sender ingenting på dine vegne.</string>
+    <string name="about_r4_text">R4 er et lokalt meldingsarkiv laget for å holde tekst du bruker ofte umiddelbart tilgjengelig mens du blir værende i en annen app. Opprett og administrer meldinger i R4, velg en målapp og start den flytende overlayen. Trykk på en lagret melding i overlayen for å kopiere hele teksten til utklippstavlen, og lim den inn der du trenger den. Du kan også opprette en ny melding direkte fra overlayen ved å lime inn tekst fra utklippstavlen og gi den en tittel. R4 bevarer emoji, linjeskift, tomme linjer og mellomrom, endrer ikke teksten din og sender ingenting på dine vegne.</string>
     <string name="app_management_collapsed">App-administrasjon ▼</string>
     <string name="app_management_expanded">App-administrasjon ▲</string>
     <string name="app_management_text">Velg hvilke apper som skal vises i målapp-rullegardinen på hovedskjermen.</string>
     <string name="links">Lenker</string>
     <string name="privacy_policy">Personvern</string>
     <string name="terms_of_use">Brukervilkår</string>
-    <string name="links_placeholder">Personvern og brukervilkår for R4.</string>
+    <string name="contact">Kontakt</string>
+    <string name="links_placeholder">Personvern, brukervilkår og kontakt for R4.</string>
     <string name="purchase">Kjøp</string>
     <string name="purchase_placeholder">Kjøpsfunksjon legges til senere.</string>
     <string name="edit">Rediger</string>
@@ -57,13 +61,6 @@
     <string name="text_label">Tekst</string>
     <string name="text_placeholder">Skriv eller lim inn melding …</string>
     <string name="save">Lagre</string>
-    <string name="overlay_messages_tab">Meldinger</string>
-    <string name="overlay_new_tab">+ Ny</string>
-    <string name="overlay_new_message_title">Ny melding</string>
-    <string name="overlay_paste">Lim inn</string>
-    <string name="overlay_saved">Lagret</string>
-    <string name="overlay_title_required">Skriv inn en tittel først</string>
-    <string name="overlay_no_clipboard_text">Utklippstavlen inneholder ingen tekst</string>
     <string name="overlay_no_saved_messages">Ingen lagrede meldinger</string>
     <string name="copied">Kopiert</string>
     <string name="clipboard_label">R4-melding</string>

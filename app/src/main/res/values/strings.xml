@@ -67,6 +67,12 @@
     <string name="save">Save</string>
 
     <string name="overlay_no_saved_messages">No saved messages</string>
+    <string name="overlay_messages_tab">Messages</string>
+    <string name="overlay_new_tab">+ New</string>
+    <string name="overlay_paste">Paste</string>
+    <string name="overlay_no_clipboard_text">No text on the clipboard</string>
+    <string name="overlay_title_required">Enter a title</string>
+    <string name="overlay_saved">Message saved</string>
     <string name="copied">Copied</string>
     <string name="clipboard_label">R4 message</string>
 </resources>

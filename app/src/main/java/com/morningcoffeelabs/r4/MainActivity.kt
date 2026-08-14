@@ -875,24 +875,6 @@ private fun SettingsScreen(
             }
 
             item {
-                DarkSettingsCard(title = stringResource(R.string.purchase)) {
-                    Text(stringResource(R.string.purchase_placeholder), color = R4Muted)
-                    Spacer(Modifier.height(12.dp))
-                    Button(
-                        onClick = {},
-                        enabled = false,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            disabledContainerColor = R4Border,
-                            disabledContentColor = R4Muted,
-                        ),
-                    ) {
-                        Text(stringResource(R.string.purchase))
-                    }
-                }
-            }
-
-            item {
                 CopyrightFooter()
                 Spacer(Modifier.height(24.dp))
             }

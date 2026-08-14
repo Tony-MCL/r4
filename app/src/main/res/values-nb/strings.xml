@@ -57,6 +57,13 @@
     <string name="text_label">Tekst</string>
     <string name="text_placeholder">Skriv eller lim inn melding …</string>
     <string name="save">Lagre</string>
+    <string name="overlay_messages_tab">Meldinger</string>
+    <string name="overlay_new_tab">+ Ny</string>
+    <string name="overlay_new_message_title">Ny melding</string>
+    <string name="overlay_paste">Lim inn</string>
+    <string name="overlay_saved">Lagret</string>
+    <string name="overlay_title_required">Skriv inn en tittel først</string>
+    <string name="overlay_no_clipboard_text">Utklippstavlen inneholder ingen tekst</string>
     <string name="overlay_no_saved_messages">Ingen lagrede meldinger</string>
     <string name="copied">Kopiert</string>
     <string name="clipboard_label">R4-melding</string>

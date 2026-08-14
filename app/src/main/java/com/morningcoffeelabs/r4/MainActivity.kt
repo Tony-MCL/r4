@@ -330,22 +330,25 @@ private fun HomeScreen(messages: List<Message>, overlayPermissionGranted: Boolea
     var showMessages by remember { mutableStateOf(false) }
     Scaffold(containerColor = R4Background) { innerPadding ->
         LazyColumn(modifier = Modifier.fillMaxSize().background(R4Background).padding(innerPadding).padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(16.dp))
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                     Spacer(Modifier.weight(1f))
                     Image(painterResource(R.drawable.r4_logo), stringResource(R.string.app_name), contentScale = ContentScale.Fit,
-                        modifier = Modifier.padding(top = 18.dp).height(116.dp).weight(2.4f))
+                        modifier = Modifier.padding(top = 10.dp).height(108.dp).weight(2.4f))
                     TextButton(onClick = onOpenSettings, modifier = Modifier.weight(1f)) { Text("⚙", color = R4Green, fontSize = 28.sp) }
                 }
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    stringResource(R.string.welcome_subtitle),
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 Spacer(Modifier.height(8.dp))
-                Text(stringResource(R.string.welcome_title), color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-                Spacer(Modifier.height(6.dp))
-                Text(stringResource(R.string.welcome_subtitle), color = R4Muted, fontSize = 16.sp, textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth())
-                Spacer(Modifier.height(14.dp))
             }
             item { HomeActionCard("+", stringResource(R.string.new_message), stringResource(R.string.home_new_message_subtitle), onCreate) }
             item { HomeActionCard("☷", stringResource(R.string.my_messages), stringResource(R.string.home_my_messages_subtitle, messages.size)) { showMessages = !showMessages } }
@@ -355,7 +358,7 @@ private fun HomeScreen(messages: List<Message>, overlayPermissionGranted: Boolea
             }
             item { DarkOverlayCard(overlayPermissionGranted, overlayRunning, targetAppName, favoriteApps, onRequestOverlayPermission,
                 onSelectTargetApp, onClearTargetApp, onStartOverlay, onStopOverlay) }
-            item { CopyrightFooter(); Spacer(Modifier.height(24.dp)) }
+            item { CopyrightFooter(); Spacer(Modifier.height(12.dp)) }
         }
     }
 }

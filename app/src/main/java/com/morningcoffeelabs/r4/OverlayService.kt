@@ -120,8 +120,13 @@ class OverlayService : Service() {
                         title = message.title,
                         enabled = true,
                         onClick = {
-                            copyToClipboard(message.text)
-                            Toast.makeText(this, getString(R.string.copied), Toast.LENGTH_SHORT).show()
+                            val verified = copyToClipboard(message.text)
+                            val toastText = if (verified) {
+                                getString(R.string.copied)
+                            } else {
+                                "Clipboard verification failed"
+                            }
+                            Toast.makeText(this, toastText, Toast.LENGTH_SHORT).show()
                             showCollapsedOverlay()
                         },
                     )
@@ -552,9 +557,19 @@ class OverlayService : Service() {
 
     private fun currentScreenBounds() = windowManager.currentWindowMetrics.bounds
 
-    private fun copyToClipboard(text: String) {
+    private fun copyToClipboard(text: String): Boolean {
         val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(ClipData.newPlainText(getString(R.string.clipboard_label), text))
+        clipboard.setPrimaryClip(
+            ClipData.newPlainText(getString(R.string.clipboard_label), text)
+        )
+
+        val current = clipboard.primaryClip
+            ?.takeIf { it.itemCount > 0 }
+            ?.getItemAt(0)
+            ?.coerceToText(this)
+            ?.toString()
+
+        return current == text
     }
 
     private fun removeOverlayView() {

@@ -98,7 +98,7 @@ class OverlayService : Service() {
             onMessages = {},
             onNew = { showNewMessageOverlay() },
         )
-        panel.addView(header)
+        panel.addView(header.view)
 
         val listContent = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -175,7 +175,7 @@ class OverlayService : Service() {
             onMessages = { showMessagesOverlay() },
             onNew = {},
         )
-        panel.addView(header)
+        panel.addView(header.view)
 
         val form = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL

@@ -44,7 +44,9 @@
     <string name="app_management_expanded">App-administrasjon ▲</string>
     <string name="app_management_text">Velg hvilke apper som skal vises i målapp-rullegardinen på hovedskjermen.</string>
     <string name="links">Lenker</string>
-    <string name="links_placeholder">Plassholder for personvern, vilkår, support og andre lenker som kreves ved publisering på Google Play.</string>
+    <string name="privacy_policy">Personvern</string>
+    <string name="terms_of_use">Brukervilkår</string>
+    <string name="links_placeholder">Personvern og brukervilkår for R4.</string>
     <string name="purchase">Kjøp</string>
     <string name="purchase_placeholder">Kjøpsfunksjon legges til senere.</string>
     <string name="edit">Rediger</string>

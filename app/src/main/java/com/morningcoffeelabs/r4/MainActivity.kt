@@ -40,6 +40,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -57,6 +58,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import java.util.UUID
 
 private data class TargetApp(val label: String, val packageName: String)
@@ -222,12 +226,31 @@ private fun R4App(
     onStopOverlay: () -> Unit,
 ) {
     val messages = remember { mutableStateListOf<Message>().apply { addAll(repository.loadMessages()) } }
+    val lifecycleOwner = LocalLifecycleOwner.current
     var editingMessage by remember { mutableStateOf<Message?>(null) }
     var isCreating by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<Message?>(null) }
     val context = LocalContext.current
     val introPreferences = remember(context) { context.getSharedPreferences("r4_first_run", 0) }
     var showFirstRunIntro by remember { mutableStateOf(!introPreferences.getBoolean("intro_shown", false)) }
+
+    fun refreshMessages() {
+        val latest = repository.loadMessages()
+        messages.clear()
+        messages.addAll(latest)
+    }
+
+    LaunchedEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                refreshMessages()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        awaitDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     fun persist() = repository.saveMessages(messages.toList())
     fun dismissFirstRunIntro() {
